@@ -34,3 +34,6 @@ htmlcov/
 
 # Supabase
 .supabase/
+
+# Node (worker/)
+node_modules/

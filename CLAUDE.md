@@ -59,3 +59,13 @@ uvicorn src.dashboard.app:app --reload --port 8000
 ## Current Status
 
 Phase 2 complete. 276 tests passing. Key recent updates include phase_start_date based escalation for accurate 21 day cycle, Row Level Security migration, JWT authentication for the dashboard, tactical empathy prompt standardization, and post generation punctuation guardrails.
+
+## Deployment
+
+Live at https://tactfulpay-production.up.railway.app (Railway project `tactfulpay`, service deployed from repo `Dockerfile`, redeployed via `railway up`). Currently demo mode: no `SUPABASE_URL` or other API keys set, so the dashboard runs on in-memory demo data. `PORT=8000` and the domain's target port are set explicitly since Railway did not autodetect them.
+
+`railway.json` config is deprecated in favor of `.railway/railway.ts` (existing file keeps working until 2026-12-01, run `railway config migrate` to switch).
+
+A `wrangler.toml` / Cloudflare Containers deploy path also exists in the repo but is unused: it requires the Workers Paid plan ($5/mo) on the Cloudflare account, which isn't enabled, and pushing the built image 401s without it. Railway was used instead since it needed no billing change.
+
+To go to full production: set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and the other keys listed in `.env.example` via `railway variables --set KEY=value`.
