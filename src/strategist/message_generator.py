@@ -162,6 +162,27 @@ def _build_user_prompt(ctx: MessageContext) -> str:
             f"Include this link naturally in the email so the recipient can pay directly.\n"
         )
 
+    phase_num = int(ctx.phase.value)
+    if phase_num >= 4:
+        prompt += (
+            "\nStatutory interest context: The invoice has exceeded the payment deadline. "
+            "Mention that statutory interest at 8 percent above the Bank of England base rate "
+            "continues to accrue on the outstanding balance and is now part of the compliance record.\n"
+        )
+    elif phase_num >= 3:
+        prompt += (
+            "\nStatutory interest context: The invoice is past the due date. "
+            "Inform the debtor that statutory interest at 8 percent above the Bank of England base rate "
+            "has been automatically added to the balance under UK law and is no longer negotiable.\n"
+        )
+    elif phase_num >= 2:
+        prompt += (
+            "\nStatutory interest context: The payment deadline is approaching. "
+            "Mention that under the Late Payment of Commercial Debts Regulations, "
+            "statutory interest at 8 percent above the Bank of England base rate automatically applies "
+            "once payment is past the due date. Frame this as a helpful warning about a system process.\n"
+        )
+
     if ctx.previous_messages:
         prompt += "\nPrevious messages in this thread (for context, do not repeat):\n"
         for msg in ctx.previous_messages[-3:]:

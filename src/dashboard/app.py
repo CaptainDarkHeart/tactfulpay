@@ -41,7 +41,7 @@ _security = HTTPBasic(auto_error=False)
 _DASHBOARD_PASSWORD = settings.dashboard_password
 
 # Paths accessible without authentication
-_PUBLIC_PATHS = {"/", "/health", "/login", "/api/auth/login"}
+_PUBLIC_PATHS = {"/", "/health", "/login", "/api/auth/login", "/internal/run-daily-sync"}
 
 
 def _require_auth(
@@ -111,6 +111,29 @@ async def context_middleware(request: Request, call_next):
 @app.get("/health", dependencies=[])
 async def health() -> dict[str, str]:
     """Health check endpoint (no auth required)."""
+    return {"status": "ok"}
+
+
+@app.post("/internal/run-daily-sync", dependencies=[])
+async def run_daily_sync(request: Request) -> dict[str, str]:
+    """Trigger the daily processing cycle.
+
+    Called by the Cloudflare Worker's Cron Trigger instead of a host-level
+    cron job. Guarded by a shared secret header, not dashboard auth, since
+    the caller is the Worker rather than a logged-in user.
+    """
+    from fastapi import HTTPException
+
+    if not settings.internal_sync_secret:
+        raise HTTPException(status_code=503, detail="internal_sync_secret not configured")
+    if not secrets.compare_digest(
+        request.headers.get("x-internal-secret", ""), settings.internal_sync_secret
+    ):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    from src.main import run_daily_cycle
+
+    run_daily_cycle()
     return {"status": "ok"}
 
 

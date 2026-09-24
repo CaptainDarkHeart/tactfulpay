@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     dashboard_password: str = ""
     cors_allowed_origins: list[str] = []
 
+    # Internal (Cloudflare Worker -> Container calls, e.g. cron-triggered daily sync)
+    internal_sync_secret: str = ""
+
     # Application
     agent_default_name: str = "Alex"
     agent_default_email: str = ""

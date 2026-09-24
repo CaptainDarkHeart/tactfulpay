@@ -1,0 +1,198 @@
+﻿Outcome-as-a-Service Payments Collector Agent
+FrieNDA in full effect
+The "Collections Gap" is a universal pain point for SMEs. In 2026, the biggest hurdle isn't just sending a reminder; it’s navigating the Power Dynamic between a small vendor and a large, slow-moving corporate accounts payable department.
+To hit a $500+ per success mark, you don't just send emails. You build a Bilateral Negotiation Agent that uses tactical empathy and behavioral psychology to move your client’s invoice to the top of the "to-pay" pile.
+________________
+The "Outcome" Logic
+* The Success Metric: A confirmed bank transfer or a "Scheduled Payment Date" verified in the client's portal.
+* The Bounty: 10% of the invoice value (for $5k+ invoices) or a $500 Flat Fee for "Stalled" invoices older than 60 days.
+________________
+The Psychological Playbook (The Agent's "Tricks")
+Your agent shouldn't sound like a "collections bot." It should sound like a Senior Project Coordinator who is "trying to help both sides."
+1. The "Labeling" Technique (Chris Voss Style)
+Instead of "Where is my money?", the agent uses tactical labeling.
+* The Script: "It seems like there might be a mismatch between the project's internal approval and the finance department’s current schedule. Is there a specific hurdle I can help clear to make this easier for your team?"
+* The Result: This removes the "accusatory" tone and positions the agent as a collaborator, not a bill collector.
+2. The "Loss Aversion" Pivot
+Large companies often have "Early Payment Discounts" they ignore. The agent flips this.
+* The Script: "I noticed the original terms included a 2% net-30 discount which has now lapsed. I’d hate for your department to lose that budget efficiency. If we can settle this by Friday, I’m authorized to honor the original discounted rate as a one-time courtesy."
+* The Psychology: Humans hate losing a "deal" more than they like paying a bill.
+3. The "Human-in-the-Loop" Illusion
+The agent builds rapport by "deflecting" the pressure to a fictional third party.
+* The Script: "My accounting lead is asking for an update for the end-of-month audit. I’d love to tell them we’re all set so they don't have to flag this. Could you let me know if the wire is initiated?"
+* The Psychology: This makes the agent an "ally" against the "cold corporate accounting department," triggering a social desire to help the "friendly" agent.
+________________
+The 2026 Tech Stack for This Agent
+Component
+	Technical Implementation
+	Communication
+	Multi-channel: Email, LinkedIn DM, and AI-Voice (ElevenLabs/Vapi) for a "quick follow-up" call.
+	Persistence Engine
+	A "Variable Cadence" schedule. It doesn't ping every 24 hours (which looks like a bot). It pings at 9:15 AM on a Tuesday, then 4:45 PM on a Thursday.
+	Authority Matching
+	The agent uses a "Discovery Agent" to find the actual person who clicks the "Approve" button, not just the generic ap@company.com inbox.
+	
+
+________________
+The "OaaS" Sales Pitch to SMEs
+"Give me your list of 60-day overdue invoices. I will deploy a dedicated 'Relationship Manager' agent to each one. You pay nothing upfront. For every invoice we get settled without a lawyer, we take $500. If we don't get you paid, we cost you $0."
+Here is the psychological escalation sequence, including the system prompts and the multi-channel cadence.
+________________
+1. The Architecture: The "State-Based" Negotiator
+You don't want a single prompt. You need an agentic workflow consisting of three distinct "brains" working in a loop:
+A. The Sentry (The Integration Brain)
+This agent monitors Xero/QuickBooks via API. It looks for invoices marked "Overdue" by $X$ days and pulls the contact's name, email, and historical payment behavior.
+B. The Strategist (The Psychological Brain)
+This is the core LLM (e.g., Claude 3.5 Sonnet or GPT-4o). It analyzes the "vibe" of previous emails.
+* If the client says "We're busy": The Strategist chooses a "Helpful Ally" persona.
+* If the client ignores three emails: The Strategist shifts to "Audit Compliance" persona.
+C. The Executor (The Multi-Channel Brain)
+This agent sends the message via the most effective channel. In 2026, this isn't just email—it's AI-Voice (via Vapi or ElevenLabs) to leave a "personalized" voicemail for the Accounts Payable manager, which has a 4x higher success rate than a fourth email.
+________________
+2. Developing the Accounting Integrations
+Building individual integrations for every platform is a nightmare. Instead, use a Unified Accounting API.
+The "Shortcut" Stack:
+* Rutter or Codat: These are "Aggregator APIs." You write code once to connect to Rutter, and it gives you instant access to Xero, QuickBooks, FreshBooks, and Sage.
+* The Trigger: Use a Webhook. Every time an invoice hits "60 days late" in QuickBooks, Codat sends a notification to your agent.
+* The Write-Back: When your agent gets a "Yes, we will pay Friday" response, the agent uses the API to update the "Notes" section in the accounting software so the human business owner stays in the loop.
+________________
+3. The Development Roadmap
+Phase 1: The "Read-Only" MVP (Weeks 1-3)
+* Step 1: Sign up for Codat.
+* Step 2: Build a simple script that pulls "Overdue Invoices > $5,000."
+* Step 3: Use a "Persona-Driven" prompt.
+   * System Prompt: "You are a Senior Project Liaison. Your goal is to get Invoice #123 paid using Chris Voss’s 'Tactical Empathy.' Never threaten; always seek to 'clear the internal hurdle' for the client."
+Phase 2: The Multi-Channel Escalation (Weeks 4-6)
+* Step 4: Integrate Vapi.ai. If an email is ignored for 3 days, the agent triggers an automated outbound call.
+   * The Script: "Hi [Name], this is [Agent Name] from [SME Name]. I'm just calling to see if there was a technical glitch with the invoice link we sent Monday? I want to make sure your records are straight for the end-of-month."
+Phase 3: The "Closing" Logic (Weeks 7-9)
+* Step 5: Integrate Stripe or Melio. When the client says "We're ready to pay," the agent instantly replies with a "One-Click Pay" link.
+* Step 6: Billing. Once the API detects the "Paid" status in QuickBooks, your system automatically bills your $500 fee to the SME’s credit card.
+________________
+4. Technical Hurdles to Watch For
+* Email Deliverability: Sending "Collection" emails can get you flagged as spam. Use Instantly.ai or Smartlead to rotate "Sender Accounts" so your agent always lands in the Inbox.
+* The "Hallucination" Risk: You cannot let the AI hallucinate a discount. Hard-code your constraints. (e.g., "Agent is authorized to offer a max 3% discount for payment within 24 hours. Anything else requires human approval.")
+________________
+Phase 1: The "Helpful Project Liaison" (Days 1–5)
+Goal: Assume the delay is a technical error or a simple oversight. Never mention "debt."
+Psychology: Use "The Yes-Ladder." Get them to agree that they received the invoice first.
+________________
+* Channel: Email 1 (Day 1)
+* System Prompt: "You are a friendly Project Coordinator. Your tone is collaborative. Your goal is to verify receipt without being accusatory."
+* The Content: "Hi [Name], I was just updating our project folder and noticed the system hasn't checked off the latest invoice (#123) as received yet. I know how messy email threads get—did that land in your inbox okay, or should I send a fresh link?"
+________________
+Phase 2: The "Internal Advocate" (Days 7–10)
+Goal: Position the agent as an ally who is trying to protect the client from their own accounting department’s "strict rules."
+Psychology: Labeling and the "Common Enemy" (The Auditor).
+* Channel: Email 2 (Day 7) + AI Voice Call (Day 10)
+* System Prompt: "You are trying to save the client from administrative hassle. Use phrases like 'I'd hate for this to get flagged' or 'I want to make sure your account stays in good standing.'"
+* Email Content: "It seems like there’s a hurdle on the processing side. I’d hate for our finance lead to flag this for a manual audit next week—it’s a huge paperwork headache for everyone. Is there anything I can provide to help you get this pushed through today?"
+* AI Voice Script: "Hi [Name], just a quick 10-second follow-up on my email. I’m trying to keep Invoice 123 off the 'Overdue' report before the Friday cutoff. Give me a shout if you need me to re-send the portal link. Thanks!"
+________________
+Phase 3: The "Loss Aversion" Pivot (Days 14–17)
+Goal: Introduce a "cost" to the delay without being aggressive.
+Psychology: People are twice as motivated to avoid a loss as they are to achieve a gain.
+* Channel: Email 3 (Day 14)
+* System Prompt: "Introduce a gentle consequence. Focus on the loss of future priority or 'Early Payment' benefits."
+* The Content: "I’m writing because I’m concerned about our project priority for next quarter. Our system automatically de-prioritizes accounts with open balances, and I’d really hate for your team to lose their preferred scheduling slot. If we can settle this by EOD, I can manually keep your priority status locked in."
+________________
+Phase 4: The "Regulatory/Formal" Shift (Day 21+)
+Goal: Transition to a "Bureaucratic" persona. The agent is no longer a person; it is a process.
+Psychology: Social proof and authority.
+* Channel: Formal Email (Day 21) + LinkedIn DM
+* System Prompt: "Shift to a cold, professional tone. Use 'Associated Press' style—no fluff, no emojis. Mention 'Compliance' and 'Records.'"
+* The Content: "Regarding Invoice #123: Our records indicate this balance is now 21 days past terms. To ensure your credit profile within our vendor ecosystem remains accurate, we require a confirmation of the wire transfer by [Date]. Please attach the remittance advice to this thread to prevent the file from moving to our external compliance partner."
+________________
+Technical Integration Logic (The "Write-Back")
+When the agent gets a reply, it doesn't just wait. It categorizes the response using an LLM Classifier:
+Response Type
+	Agent Action
+	Xero/QuickBooks Update
+	"Will pay Friday"
+	Send "Thank you" + Calendar Invite.
+	Update Note: "Payer promised 03/24."
+	"Check is in the mail"
+	Ask for Check Number (Social Accountability).
+	Update Note: "Check pending."
+	"Dispute over work"
+	Pause Agent + Alert Human Business Owner.
+	Flag: "Disputed - Human Intervention."
+	No Response
+	Escalate to next Phase.
+	No Change.
+	________________
+The Business Math
+If you land 5 SMEs as clients, each with 10 overdue invoices a month:
+* 50 invoices total.
+* 50% success rate (25 "successes").
+* 25 x $500 = $12,500/month in pure "Bounty" revenue.
+________________
+The Codat Integration Logic
+The following script targets the GET /companies/{companyId}/data/invoices endpoint. It uses a query string to isolate invoices where the status is "Open" and the due date has already passed.
+
+
+Python
+
+
+
+
+import requests
+import datetime
+
+# Configuration
+CODAT_API_KEY = "YOUR_CODAT_API_KEY"
+BASE_URL = "https://api.codat.io"
+COMPANY_ID = "CLIENT_COMPANY_ID_FROM_CODAT" # The SME's unique ID
+
+def get_overdue_invoices(company_id):
+   # Calculate "today" for the query filter
+   today = datetime.date.today().isoformat()
+   
+   # Codat Query Language (CQL) filter: 
+   # Status is 'Open' AND the Due Date is before today
+   query_filter = f"status=Open&&dueDate<{today}"
+   
+   url = f"{BASE_URL}/companies/{company_id}/data/invoices"
+   headers = {
+       "Authorization": f"Basic {CODAT_API_KEY}",
+       "Content-Type": "application/json"
+   }
+   params = {
+       "query": query_filter,
+       "pageSize": 50
+   }
+
+   try:
+       response = requests.get(url, headers=headers, params=params)
+       response.raise_for_status()
+       data = response.json()
+       
+       overdue_list = data.get("results", [])
+       return overdue_list
+
+   except requests.exceptions.RequestException as e:
+       print(f"Error fetching data from Codat: {e}")
+       return []
+
+# Execute
+invoices = get_overdue_invoices(COMPANY_ID)
+
+for inv in invoices:
+   customer_name = inv.get('customerRef', {}).get('companyName', 'Unknown')
+   amount_due = inv.get('totalAmount', 0)
+   days_overdue = (datetime.date.today() - datetime.date.fromisoformat(inv['dueDate'][:10])).days
+   
+   print(f"ALARM: {customer_name} owes ${amount_due}. Invoice is {days_overdue} days late.")
+   # Here is where you would trigger your Agent's Phase 1 Email
+
+________________
+Critical Implementation Details
+* The Metadata Trigger: When you pull the invoice, you must grab the customerRef. This contains the ID you'll use to fetch the customer's email address in a secondary call to /data/customers/{customerId}.
+* The "Write-Back" (The Bounty Evidence): Once the invoice is paid, Codat will update the status to Paid. You should set up a Webhook in Codat's dashboard so your script is notified the second that status changes. This is your "Proof of Success" to bill your $500 fee.
+* The Connection Flow: Your SMEs won't give you their password. You will send them a Codat Link URL. They click it, log into their Xero/QuickBooks, and Codat securely hands you the token.
+________________
+The Business Workflow
+* SME Connects: You provide a Link UI for the SME to authorize their Xero/QuickBooks.
+* Agent Syncs: Your Python script runs every morning at 8:00 AM to find new "60-day" targets.
+* The Negotiation: The agent begins the 4-Phase psychological sequence we drafted.
+* The Settlement: Payment is detected via Codat Webhook $\rightarrow$ Your system fires an invoice to the SME for your $500.

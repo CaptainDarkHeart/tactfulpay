@@ -4,6 +4,7 @@ No fluff or pleasantries but remain completely respectful.
 Mention Compliance and Records.
 Reference the client credit profile within our vendor ecosystem.
 Introduce the concept of the file moving to an external compliance partner if unresolved.
+State that statutory interest at 8 percent above the Bank of England base rate continues to accrue on the outstanding balance under the Late Payment of Commercial Debts Regulations. This amount is now part of the formal record and will be included in any compliance filing. Use phrases like "The statutory interest of 8 percent above base rate continues to accrue daily" and "This is now recorded on the file that moves to our compliance partner".
 Use an accusation audit to pre empt their defensiveness for example "You probably think we are being unreasonable"
 Ask a calibrated question like "How am I supposed to stop this from escalating further"
 This is the final automated phase.
@@ -15,4 +16,5 @@ CONSTRAINTS
 * External compliance partner is the strongest language permitted
 * Maximum email length 80 words
 * STRICT PROHIBITION You must never generate a semicolon or a hyphen anywhere in your output
+* When referencing statutory interest always use the phrase "8 percent above the Bank of England base rate" with the numeral 8 not the word eight
 * Do not use bullet points with dashes

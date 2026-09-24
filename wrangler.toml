@@ -1,0 +1,35 @@
+name = "oaas-collections-agent"
+main = "worker/index.ts"
+compatibility_date = "2024-09-23"
+
+# Cloudflare Containers: runs the existing Dockerfile (FastAPI app) as a
+# managed container instance. Replaces Railway.
+[[containers]]
+class_name = "OaasContainer"
+image = "./Dockerfile"
+max_instances = 1
+# Container idles down when unused; the Worker wakes it on the next request.
+instance_type = "basic"
+
+[[durable_objects.bindings]]
+name = "OAAS_CONTAINER"
+class_name = "OaasContainer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["OaasContainer"]
+
+# Replaces the docker-compose `scheduler` profile / scripts/run_daily_sync.py
+# cron invocation. Fires once daily; adjust the hour to taste (UTC).
+[triggers]
+crons = ["0 6 * * *"]
+
+# Secrets (set via `wrangler secret put <NAME>`, not committed here):
+#   ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
+#   RESEND_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, VAPI_API_KEY,
+#   ELEVENLABS_API_KEY, CODAT_API_KEY, CODAT_WEBHOOK_SECRET, XERO_CLIENT_ID,
+#   XERO_CLIENT_SECRET, QUICKBOOKS_CLIENT_ID, QUICKBOOKS_CLIENT_SECRET,
+#   TOKEN_ENCRYPTION_KEY, DASHBOARD_PASSWORD, INTERNAL_SYNC_SECRET
+#
+# These get passed into the container's environment by the Container binding
+# (see worker/index.ts) rather than living in a .env file on a server.
