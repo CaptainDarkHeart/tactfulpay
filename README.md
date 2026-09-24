@@ -1,4 +1,4 @@
-# OaaS Collections Agent
+# TactfulPay
 
 AI powered collections agent that recovers overdue invoices for SMEs using psychological escalation techniques rooted in Chris Voss tactical empathy methodology.
 

@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "dashboard",
-      "runtimeExecutable": "/Users/dantaylor/Claude/oaas-collections-agent/.venv/bin/uvicorn",
+      "runtimeExecutable": "/Users/dantaylor/Claude/tactfulpay/.venv/bin/uvicorn",
       "runtimeArgs": ["src.dashboard.app:app", "--reload", "--port", "8000"],
       "port": 8000
     }

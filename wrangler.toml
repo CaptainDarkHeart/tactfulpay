@@ -1,23 +1,23 @@
-name = "oaas-collections-agent"
+name = "tactfulpay"
 main = "worker/index.ts"
 compatibility_date = "2024-09-23"
 
 # Cloudflare Containers: runs the existing Dockerfile (FastAPI app) as a
 # managed container instance. Replaces Railway.
 [[containers]]
-class_name = "OaasContainer"
+class_name = "TactfulPayContainer"
 image = "./Dockerfile"
 max_instances = 1
 # Container idles down when unused; the Worker wakes it on the next request.
 instance_type = "basic"
 
 [[durable_objects.bindings]]
-name = "OAAS_CONTAINER"
-class_name = "OaasContainer"
+name = "TACTFULPAY_CONTAINER"
+class_name = "TactfulPayContainer"
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["OaasContainer"]
+new_sqlite_classes = ["TactfulPayContainer"]
 
 # Replaces the docker-compose `scheduler` profile / scripts/run_daily_sync.py
 # cron invocation. Fires once daily; adjust the hour to taste (UTC).

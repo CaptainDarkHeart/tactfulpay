@@ -49,7 +49,7 @@ def send_alert(
                 "title": title,
                 "text": message,
                 "fields": fields,
-                "footer": "OaaS Collections Agent",
+                "footer": "TactfulPay",
             }
         ]
     }

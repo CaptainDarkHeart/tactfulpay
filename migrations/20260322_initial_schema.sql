@@ -1,4 +1,4 @@
--- OaaS Collections Agent: Initial Schema
+-- TactfulPay: Initial Schema
 -- Run this against your Supabase project's SQL editor
 
 -- Enable UUID generation

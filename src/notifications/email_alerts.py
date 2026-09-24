@@ -24,7 +24,7 @@ def send_owner_alert(
         to_name=owner_name,
         subject=subject,
         body=body,
-        from_name="OaaS Collections Agent",
+        from_name="TactfulPay",
     )
 
 
@@ -50,7 +50,7 @@ def alert_dispute(
             f"Please review and let us know how to proceed. You can clear the "
             f"dispute flag in your dashboard to re-enable the agent, or handle "
             f"this one directly.\n\n"
-            f"— OaaS Collections Agent"
+            f"TactfulPay"
         ),
     )
 
@@ -77,7 +77,7 @@ def alert_hostile(
             f'Their reply:\n"{reply_excerpt[:500]}"\n\n'
             f"This requires your personal review. Please check the dashboard "
             f"for full details.\n\n"
-            f"— OaaS Collections Agent"
+            f"TactfulPay"
         ),
     )
 
@@ -95,7 +95,7 @@ def alert_human_review(
         client=client,
         owner_email=owner_email,
         owner_name=owner_name,
-        subject=f"Review needed: Invoice #{invoice_number} — {debtor_company}",
+        subject=f"Review needed: Invoice #{invoice_number}: {debtor_company}",
         body=(
             f"Hi {owner_name},\n\n"
             f"Invoice #{invoice_number} ({debtor_company}) has been flagged "
@@ -103,7 +103,7 @@ def alert_human_review(
             f"Reason: {reason}\n\n"
             f"The agent has paused automated outreach. Please check the "
             f"dashboard and decide on next steps.\n\n"
-            f"— OaaS Collections Agent"
+            f"TactfulPay"
         ),
     )
 
@@ -115,7 +115,7 @@ def alert_write_off_claimed(
     invoice_number: str,
     debtor_company: str,
     reply_excerpt: str,
-    dashboard_url: str = "https://oaas.app/dashboard",
+    dashboard_url: str = "https://tactfulpay.app/dashboard",
 ) -> EmailResult:
     """Alert the SME that the debtor is claiming the invoice was written off.
 
@@ -133,17 +133,17 @@ def alert_write_off_claimed(
             f'Their reply:\n"{reply_excerpt[:500]}"\n\n'
             f"We have paused the agent and need you to confirm which of the following "
             f"is true:\n\n"
-            f"1. YES — I did write this invoice off (or agreed to cancel it)\n"
+            f"1. YES: I did write this invoice off (or agreed to cancel it)\n"
             f"   Please log in and click 'Confirm Write-Off' on the invoice. "
             f"We'll close the case. Note: if collection contact contributed to "
             f"this resolution, a fee discussion may follow.\n\n"
-            f"2. NO — I never agreed to write this off. The debtor is lying.\n"
-            f"   Please log in and click 'Debtor Lied — Resume' on the invoice. "
+            f"2. NO: I never agreed to write this off. The debtor is lying.\n"
+            f"   Please log in and click 'Debtor Lied · Resume' on the invoice. "
             f"The agent will resume at a stronger tone.\n\n"
             f"Dashboard: {dashboard_url}\n\n"
-            f"Please respond within 48 hours — the agent will remain paused until "
+            f"Please respond within 48 hours. The agent will remain paused until "
             f"you confirm.\n\n"
-            f"— OaaS Collections Agent"
+            f"TactfulPay"
         ),
     )
 
@@ -168,6 +168,6 @@ def alert_promise_to_pay(
             f"Details: {details}\n\n"
             f"We'll monitor this and follow up if payment doesn't arrive on "
             f"the promised date.\n\n"
-            f"— OaaS Collections Agent"
+            f"TactfulPay"
         ),
     )

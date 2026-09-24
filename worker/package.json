@@ -1,5 +1,5 @@
 {
-  "name": "oaas-collections-agent-worker",
+  "name": "tactfulpay-worker",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",

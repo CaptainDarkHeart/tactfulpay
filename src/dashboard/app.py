@@ -1,4 +1,4 @@
-"""FastAPI dashboard for the OaaS Collections Agent.
+"""FastAPI dashboard for the TactfulPay.
 
 TactfulPay-inspired design: clean white nav, emerald green accents,
 light slate backgrounds, generous spacing, premium fintech feel.
@@ -77,7 +77,7 @@ def _require_auth(
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
-    title="OaaS Collections Agent",
+    title="TactfulPay",
     version="0.1.0",
     dependencies=[Depends(_require_auth)],
 )
@@ -990,7 +990,7 @@ async def invoice_detail(invoice_id: str):
             f'<form method="post" action="/invoices/{invoice_id}/deny-write-off" class="inline-form" style="margin-left:8px">'
             f'<button type="submit" class="btn btn-primary">'
             f'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
-            f"Debtor Lied &mdash; Resume"
+            f"Debtor Lied &middot; Resume"
             f"</button></form>"
         )
     elif invoice["status"] in ("paused", "disputed"):
@@ -2433,7 +2433,7 @@ def _landing_html() -> str:
     </div>
 </section>
 
-<!-- OaaS Pricing -->
+<!-- Pricing -->
 <section class="lp-section lp-light" id="pricing">
     <div class="lp-section-inner">
         <div class="lp-pricing-wrap">
@@ -2539,11 +2539,11 @@ def _base_html(title: str, content: str) -> str:
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{title} — TactfulPay</title>
+    <title>{title} · TactfulPay</title>
     <link rel="icon" type="image/png" href="/static/logo-square.png">
     <style>
         /* ================================================================
-           OaaS Design System — TactfulPay inspired
+           TactfulPay Design System
            Dark navy + emerald green accent + light slate backgrounds
            ================================================================ */
 

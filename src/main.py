@@ -1,4 +1,4 @@
-"""OaaS Collections Agent — main orchestrator and scheduler.
+"""TactfulPay — main orchestrator and scheduler.
 
 Runs the daily processing loop:
 1. Scan all active invoices

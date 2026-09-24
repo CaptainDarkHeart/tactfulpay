@@ -97,8 +97,8 @@ class StripeBilling:
         fee_amount: Decimal,
         currency: str = "GBP",
         customer_id: str | None = None,
-        success_url: str = "https://oaas.app/billing/success",
-        cancel_url: str = "https://oaas.app/billing/cancel",
+        success_url: str = "https://tactfulpay.app/billing/success",
+        cancel_url: str = "https://tactfulpay.app/billing/cancel",
     ) -> ChargeResult:
         """Create a Stripe Checkout Session to collect the recovery fee from the SME.
 

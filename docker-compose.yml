@@ -1,4 +1,4 @@
-# OaaS Collections Agent — Docker Compose
+# TactfulPay - Docker Compose
 #
 # Demo mode (no API keys needed):
 #   docker compose up dashboard
@@ -11,7 +11,7 @@
 
 services:
   dashboard:
-    image: ghcr.io/captaindarkhart/oaas-collections-agent:latest
+    image: ghcr.io/captaindarkhart/tactfulpay:latest
     # To build locally instead of pulling from GHCR:
     # build: .
     ports:
@@ -32,7 +32,7 @@ services:
   # Scheduler: runs the daily collection cycle
   # Only needed in production mode (requires API keys)
   scheduler:
-    image: ghcr.io/captaindarkhart/oaas-collections-agent:latest
+    image: ghcr.io/captaindarkhart/tactfulpay:latest
     # build: .
     command: ["python", "-m", "scripts.run_daily_sync"]
     env_file:

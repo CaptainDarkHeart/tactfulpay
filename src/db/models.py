@@ -1,4 +1,4 @@
-"""Database models and Supabase client for the OaaS Collections Agent.
+"""Database models and Supabase client for the TactfulPay.
 
 Defines Pydantic models for validation and a thin Supabase wrapper for CRUD.
 Tables: smes, invoices, contacts, interactions, fees.

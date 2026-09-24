@@ -1,7 +1,7 @@
 import { Container, getContainer } from "@cloudflare/containers";
 
 export interface Env {
-  OAAS_CONTAINER: DurableObjectNamespace<OaasContainer>;
+  TACTFULPAY_CONTAINER: DurableObjectNamespace<TactfulPayContainer>;
   ANTHROPIC_API_KEY: string;
   SUPABASE_URL: string;
   SUPABASE_ANON_KEY: string;
@@ -23,7 +23,7 @@ export interface Env {
 }
 
 // Container instance running the existing FastAPI app (uvicorn on :8000).
-export class OaasContainer extends Container<Env> {
+export class TactfulPayContainer extends Container<Env> {
   defaultPort = 8000;
   // Sleep the container after 10 min idle; the Worker restarts it on the
   // next request. Fine for a dashboard + webhook receiver, not for
@@ -54,12 +54,12 @@ export class OaasContainer extends Container<Env> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const container = getContainer(env.OAAS_CONTAINER);
+    const container = getContainer(env.TACTFULPAY_CONTAINER);
     return container.fetch(request);
   },
 
   async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
-    const container = getContainer(env.OAAS_CONTAINER);
+    const container = getContainer(env.TACTFULPAY_CONTAINER);
     await container.fetch(
       new Request("http://container/internal/run-daily-sync", {
         method: "POST",
