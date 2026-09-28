@@ -20,7 +20,10 @@ Classify the following email reply into exactly one of these categories:
    the claim is that the creditor agreed to cancel the debt — not when
    the debtor simply refuses to pay or disputes the amount owed.
 
-Reply with ONLY the category name and a one-sentence justification.
+Respond in exactly this format, with nothing before or after it:
+CATEGORY_NAME - one-sentence justification
+
+Do not explain your reasoning. Do not add any other text.
 
 Email reply:
 """

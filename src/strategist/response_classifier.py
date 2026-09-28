@@ -1,4 +1,4 @@
-"""LLM-based reply classification using Claude Sonnet 4.
+"""LLM-based reply classification using the pinned OpenRouter model.
 
 Classifies inbound email replies into one of seven categories:
     PROMISE_TO_PAY, PAYMENT_PENDING, DISPUTE, REDIRECT,
@@ -11,10 +11,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import anthropic
-
 from src.config import settings
 from src.db.models import Classification
+from src.strategist.llm_client import chat_completion
 
 PROMPT_PATH = Path(__file__).parent / "prompts" / "classifier.txt"
 
@@ -23,7 +22,7 @@ VALID_CLASSIFICATIONS = {c.value.upper(): c for c in Classification}
 
 
 def classify_response(reply_text: str) -> tuple[Classification, str]:
-    """Classify an inbound email reply using Claude Sonnet 4.
+    """Classify an inbound email reply using the pinned OpenRouter model.
 
     Args:
         reply_text: The raw text of the email reply.
@@ -34,18 +33,15 @@ def classify_response(reply_text: str) -> tuple[Classification, str]:
     prompt_template = PROMPT_PATH.read_text()
     prompt = prompt_template.replace("{reply_text}", reply_text)
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=150,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
-    if not message.content or not hasattr(message.content[0], "text"):
+    try:
+        raw = chat_completion(
+            user_prompt=prompt,
+            models=settings.openrouter_classifier_models,
+            max_tokens=150,
+        )
+    except RuntimeError:
         return Classification.STALL, "Empty response from classifier LLM"
 
-    raw = message.content[0].text.strip()
     return _parse_classification(raw)
 
 

@@ -1,7 +1,8 @@
 """LLM-based message composition for each escalation phase.
 
 Loads the appropriate phase system prompt, injects invoice/contact context,
-and calls Claude Sonnet 4 to generate the outbound message.
+and calls the pinned OpenRouter model (see src.strategist.llm_client) to
+generate the outbound message.
 
 Also implements the "reply to sent" follow-up technique (Phase 1 follow-ups
 are framed as forwarding your own sent email).
@@ -13,11 +14,10 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-import anthropic
-
 from src.config import settings
 from src.db.models import InvoicePhase
 from src.strategist.constraints import PHASE_1_BANNED_WORDS, PHASE_MAX_WORDS, DiscountOffer
+from src.strategist.llm_client import chat_completion
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
@@ -84,34 +84,33 @@ def generate_message(ctx: MessageContext) -> GeneratedMessage:
     system_prompt = _load_phase_prompt(ctx)
     user_prompt = _build_user_prompt(ctx)
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-
     max_retries = 3
     last_error = None
 
     for attempt in range(max_retries):
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
+        raw = chat_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            models=settings.openrouter_message_models,
             max_tokens=500,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_prompt}],
         )
-
-        if not message.content or not hasattr(message.content[0], "text"):
-            raise RuntimeError("Empty response from message generation LLM")
-
-        raw = message.content[0].text.strip()
         subject, body = _parse_email(raw, ctx)
 
         try:
-            # Post generation guardrail
+            # Post generation guardrail (subject line included, the LLM can
+            # leak a raw hyphenated invoice number into it same as the body)
+            subject = _enforce_banned_words(subject, ctx.phase)
             body = _enforce_banned_words(body, ctx.phase)
             _check_discounts(body, ctx)
             return GeneratedMessage(subject=subject, body=body)
         except ValueError as e:
             last_error = e
             # add the violation feedback back to the prompt
-            user_prompt += f"\n\nYour previous attempt failed with constraint violation: {e}. Please correct this."
+            user_prompt += (
+                f"\n\nYour previous attempt failed with constraint violation: {e}. "
+                "If this was a dash or hyphen, you likely used one for a pause or an aside. "
+                "Rewrite using a comma or a new sentence instead, not any kind of dash."
+            )
 
     raise RuntimeError(
         f"Failed to generate valid message after {max_retries} attempts. Last error: {last_error}"
@@ -138,9 +137,15 @@ def _build_user_prompt(ctx: MessageContext) -> str:
     """Build the user-turn prompt with invoice context for the LLM."""
     max_words = PHASE_MAX_WORDS.get(int(ctx.phase.value), 120)
 
+    # Strip hyphens from the invoice number before it ever reaches the model,
+    # otherwise it gets echoed back verbatim ("#INV-1042") and trips the
+    # no-hyphen guardrail on a value the model had no reason to think it
+    # was allowed to reformat.
+    display_invoice_number = ctx.invoice_number.replace("-", " ")
+
     prompt = (
         f"Write an email to {ctx.contact_name} at {ctx.debtor_company} "
-        f"regarding Invoice #{ctx.invoice_number} for {ctx.currency} {ctx.amount}, "
+        f"regarding Invoice #{display_invoice_number} for {ctx.currency} {ctx.amount}, "
         f"which is {ctx.days_overdue} days overdue (due date: {ctx.due_date}).\n\n"
         f"Keep the email under {max_words} words.\n"
         f"Include a subject line on the first line prefixed with 'Subject: '.\n"
@@ -262,8 +267,9 @@ def _enforce_banned_words(body: str, phase: InvoicePhase) -> str:
                     r"\b" + re.escape(banned) + r"\b", replacement, body, flags=re.IGNORECASE
                 )
 
-    # Reject semicolons and hyphens completely
-    if re.search(r"[;\-]", body):
+    # Reject semicolons and hyphens completely, including en/em dashes
+    # (the LLM substitutes "–"/"—" for a plain hyphen about as often as not)
+    if re.search(r"[;\-–—]", body):
         raise ValueError("Constraint Violation: Semicolons and hyphens are forbidden")
 
     return body

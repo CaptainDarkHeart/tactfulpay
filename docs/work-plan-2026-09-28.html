@@ -1,0 +1,392 @@
+<title>TactfulPay Sprint Plan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c2b30;
+    --ink-soft:#4a5a5e;
+    --paper:#f7f4ee;
+    --paper-raised:#ffffff;
+    --line:#dcd5c6;
+    --accent:#0f6b5c;
+    --accent-soft:#e3efe9;
+    --dan:#0f6b5c;
+    --dan-soft:#e3efe9;
+    --stewart:#8a4b2e;
+    --stewart-soft:#f2e6dc;
+    --warn:#a4650f;
+    --warn-soft:#f7ecd9;
+    --focus:#0f6b5c;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e9ece9;
+      --ink-soft:#a8b3ae;
+      --paper:#12181a;
+      --paper-raised:#1a2224;
+      --line:#2c3638;
+      --accent:#4fd3ae;
+      --accent-soft:#16332c;
+      --dan:#4fd3ae;
+      --dan-soft:#16332c;
+      --stewart:#e2a074;
+      --stewart-soft:#332419;
+      --warn:#e3b054;
+      --warn-soft:#332a13;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e9ece9;
+    --ink-soft:#a8b3ae;
+    --paper:#12181a;
+    --paper-raised:#1a2224;
+    --line:#2c3638;
+    --accent:#4fd3ae;
+    --accent-soft:#16332c;
+    --dan:#4fd3ae;
+    --dan-soft:#16332c;
+    --stewart:#e2a074;
+    --stewart-soft:#332419;
+    --warn:#e3b054;
+    --warn-soft:#332a13;
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    padding-inline:16px;
+    padding-block:48px;
+  }
+  main{
+    max-width:760px;
+    margin-inline:auto;
+  }
+  h1,h2,h3{
+    font-family:'Fraunces',Georgia,serif;
+    text-wrap:balance;
+    line-height:1.15;
+  }
+  header.doc-head{
+    margin-bottom:40px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.72rem;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 10px;
+  }
+  h1{
+    font-size:clamp(2rem,5vw,2.75rem);
+    font-weight:700;
+    margin:0 0 10px;
+  }
+  .subtitle{
+    font-size:1.05rem;
+    color:var(--ink-soft);
+    max-width:60ch;
+    margin:0 0 18px;
+  }
+  .meta-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 18px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.78rem;
+    color:var(--ink-soft);
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+  .meta-row a{color:var(--ink-soft);}
+
+  section{margin-block:40px;}
+  section > h2{
+    font-size:1.4rem;
+    font-weight:600;
+    margin:0 0 14px;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  section > h2 .num{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.85rem;
+    color:var(--ink-soft);
+    font-weight:400;
+  }
+  p{line-height:1.6;max-width:66ch;}
+  .lede{font-size:1.05rem;}
+
+  .goal-strip{
+    display:flex;
+    gap:14px;
+    padding:18px 20px;
+    background:var(--accent-soft);
+    border:1px solid var(--accent);
+    border-radius:10px;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .goal-strip .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.72rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--accent);
+    white-space:nowrap;
+    padding-top:3px;
+  }
+  .goal-strip p{margin:0;font-weight:500;}
+
+  .track-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+  }
+  @media (max-width:620px){
+    .track-grid{grid-template-columns:1fr;}
+  }
+  .track{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px 20px 20px;
+  }
+  .track.dan{border-top:3px solid var(--dan);}
+  .track.stewart{border-top:3px solid var(--stewart);}
+  .track h3{
+    font-family:'Inter',sans-serif;
+    font-size:.95rem;
+    font-weight:700;
+    margin:0 0 4px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .track h3 .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .track.dan h3 .dot{background:var(--dan);}
+  .track.stewart h3 .dot{background:var(--stewart);}
+  .track .role{
+    font-size:.78rem;
+    color:var(--ink-soft);
+    margin:0 0 14px;
+  }
+  ul.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;}
+  ul.tasks li{
+    display:grid;
+    grid-template-columns:18px 1fr;
+    gap:10px;
+    align-items:start;
+    font-size:.92rem;
+    line-height:1.5;
+  }
+  ul.tasks li::before{
+    content:"";
+    width:16px;height:16px;
+    border:1.5px solid var(--ink-soft);
+    border-radius:4px;
+    margin-top:2px;
+  }
+  ul.tasks li b{display:block;font-weight:600;}
+  ul.tasks li span.note{color:var(--ink-soft);font-size:.85rem;}
+
+  .decisions{display:flex;flex-direction:column;gap:12px;}
+  .decision{
+    background:var(--warn-soft);
+    border:1px solid var(--warn);
+    border-radius:10px;
+    padding:14px 18px;
+  }
+  .decision .q{
+    font-weight:600;
+    margin:0 0 4px;
+    display:flex;
+    gap:8px;
+    align-items:baseline;
+  }
+  .decision .q::before{
+    content:"?";
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--warn);
+    font-weight:700;
+  }
+  .decision p{margin:0;font-size:.9rem;color:var(--ink-soft);max-width:none;}
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.9rem;
+  }
+  .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;}
+  th,td{
+    text-align:left;
+    padding:10px 16px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  th{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.7rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    background:var(--paper-raised);
+  }
+  tr:last-child td{border-bottom:none;}
+  td.num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  td.good{color:var(--accent);font-weight:600;}
+
+  .risk-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none;}
+  .risk-list li{
+    display:grid;
+    grid-template-columns:auto 1fr;
+    gap:12px;
+    align-items:start;
+    padding:12px 16px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:.9rem;
+  }
+  .risk-list .sev{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.68rem;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    padding:2px 8px;
+    border-radius:20px;
+    background:var(--warn-soft);
+    color:var(--warn);
+    white-space:nowrap;
+  }
+  .risk-list p{margin:0;color:var(--ink-soft);}
+  .risk-list b{color:var(--ink);}
+
+  footer{
+    margin-top:50px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.75rem;
+    color:var(--ink-soft);
+  }
+</style>
+
+<main>
+  <header class="doc-head">
+    <p class="eyebrow">TactfulPay &middot; Internal Work Plan</p>
+    <h1>Proof of concept, by next week</h1>
+    <p class="subtitle">Actions arising from the Dan Taylor / Stewart Rogers call, drawn straight from the meeting transcript and notes.</p>
+    <div class="meta-row">
+      <span>Source: call, 28 Sep 2026, 11:00 BST</span>
+      <span>Owners: Dan Taylor, Stewart Rogers</span>
+      <span>Next checkpoint: ~5 Oct 2026</span>
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Where this sits</h2>
+    <p class="lede">TactfulPay chases overdue B2B invoices with a controlled, gentle escalation instead of an accounts team losing its temper and the client relationship with it. The UK's March 2026 law permitting 8% statutory interest on late payment gives it a legal lever to automate. Target buyer: UK B2B SMEs and freelancers (up to roughly 10 people) billing meaningful sums for consultancy, strategic advice, or B2B software, not micro-SaaS operators charging $10/month.</p>
+    <div class="goal-strip">
+      <span class="label">Sprint goal</span>
+      <p>Dan takes the current demo to a working proof of concept with real onboarding by the time Dan and Stewart next speak. Stewart delivers the non-technical groundwork (prompts, tax, banking, leads) in parallel.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Who owns what</h2>
+    <div class="track-grid">
+      <div class="track dan">
+        <h3><span class="dot"></span>Dan</h3>
+        <p class="role">Product &amp; technical build</p>
+        <ul class="tasks">
+          <li><b>Select the backend LLM</b><span class="note">Agreed to skip Claude on cost. Evaluate Qwen, Kimi, and GLM for the Strategist brain.</span></li>
+          <li><b>Build onboarding into the demo</b><span class="note">Replace the "secure my cash flow" shortcut with a proper account setup route so test clients go through the real flow, not a shortcut that adds a client directly.</span></li>
+          <li><b>Ship a functional proof of concept</b><span class="note">Target: ready before the next sync, so Stewart can start testing with friendly contacts.</span></li>
+          <li><b>Track operating costs</b><span class="note">Report hosting, LLM, and platform spend as the build progresses. Current baseline: $5/month Railway hosting against an estimated $140/month client charge.</span></li>
+        </ul>
+      </div>
+      <div class="track stewart">
+        <h3><span class="dot"></span>Stewart</h3>
+        <p class="role">Strategy, compliance &amp; go-to-market</p>
+        <ul class="tasks">
+          <li><b>Deliver the updated prompt set</b><span class="note">New instruction set directing how the escalation conversation should proceed, built on his tactical-empathy "T method" work.</span></li>
+          <li><b>Research tax exposure</b><span class="note">What TactfulPay owes on payments that flow through its own account before being paid out to clients.</span></li>
+          <li><b>Research banking &amp; escrow options</b><span class="note">Including whether a Jersey or Gibraltar company/banking structure changes the tax position.</span></li>
+          <li><b>Stand up lead-scraping agents</b><span class="note">Automated discovery of contacts at target companies, once the product is ready to sell.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>Open decisions</h2>
+    <div class="decisions">
+      <div class="decision">
+        <p class="q">Who sends the collection messages, and from where?</p>
+        <p>Sending from TactfulPay signals the matter has already escalated, but risks the payee going straight to the creditor to negotiate and cutting the platform out. Option floated: send directly but copy the accounts contact on status only, not full message threads, so the process can't be easily copied.</p>
+      </div>
+      <div class="decision">
+        <p class="q">How does the 10% fee actually get collected?</p>
+        <p>Escrow-style routing (TactfulPay receives payment, pays out 90% to the client, keeps 10%) was the working idea, via Stripe or an API-driven escrow provider. Unresolved: the tax liability of running hundreds of companies' payments through one account, and how a payee is reassured the money won't just sit with TactfulPay.</p>
+      </div>
+      <div class="decision">
+        <p class="q">Does a Jersey or Gibraltar entity make sense?</p>
+        <p>Raised as a way to manage the tax exposure of holding client funds in transit. Needs research before any banking structure is committed to. Stewart owns this.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span>Economics, as discussed</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Line</th><th>Figure</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Current hosting cost</td><td class="num">$5 / mo</td><td>Railway, per the deployed instance</td></tr>
+          <tr><td>Target client charge</td><td class="num good">$140 / mo</td><td>First prospective client, pending go-ahead</td></tr>
+          <tr><td>Take-rate model</td><td class="num">10%</td><td>Escrow-style split on collected invoices</td></tr>
+          <tr><td>Combined baseline goal</td><td class="num">$4,000 / mo</td><td>Dan + Stewart's minimum steady income across all projects, TactfulPay included</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span>Risks flagged on the call</h2>
+    <ul class="risk-list">
+      <li>
+        <span class="sev">Circumvention</span>
+        <p><b>Payees route around the platform.</b> A payee could contact the creditor directly to arrange informal installments once they see the account is being chased, cutting TactfulPay out before it's paid.</p>
+      </li>
+      <li>
+        <span class="sev">Trust</span>
+        <p><b>"Will we ever see the money?"</b> If funds land in TactfulPay's account before payout, a payer with no track record has no proof the balance will actually reach the client. A visible escrow, rather than a black-box account, was proposed as the fix.</p>
+      </li>
+      <li>
+        <span class="sev">Compliance</span>
+        <p><b>Tax exposure on pass-through funds.</b> Running many clients' incoming payments through one company account before paying out 90% needs a clear answer before this goes further than a demo.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span>What happens next</h2>
+    <p>Once the proof of concept and onboarding flow are ready, Stewart tests with friendly contacts, Mr Doug has already offered, within a couple of weeks of this call. Broader lead generation and outreach wait until after that test.</p>
+  </section>
+
+  <footer>
+    Compiled from the Gemini meeting notes and transcript, 28 Sep 2026. Source: internal call recording, not for external distribution.
+  </footer>
+</main>

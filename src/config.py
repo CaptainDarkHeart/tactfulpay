@@ -2,8 +2,28 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Anthropic
-    anthropic_api_key: str = ""
+    # OpenRouter (LLM provider for the Strategist brain)
+    openrouter_api_key: str = ""
+
+    # Message generation: needs tone/nuance for tactical empathy, so leads
+    # with a stronger model. Fallback order also spreads across provider
+    # lineages (Alibaba, DeepSeek, Z.ai) for resilience.
+    openrouter_message_models: list[str] = [
+        "qwen/qwen3-235b-a22b-2507",
+        "deepseek/deepseek-v3.2",
+        "z-ai/glm-4.6",
+    ]
+
+    # Reply classification: fixed-category output, lower stakes if wrong
+    # (falls back to STALL). GLM 4.7 Flash was tried first for cost but
+    # intermittently leaked reasoning text into the response even with
+    # reasoning disabled, breaking the strict "CATEGORY - reason" parse.
+    # Qwen3/DeepSeek held the format cleanly in every test, so they lead.
+    openrouter_classifier_models: list[str] = [
+        "qwen/qwen3-235b-a22b-2507",
+        "deepseek/deepseek-v3.2",
+        "z-ai/glm-4.7-flash",
+    ]
 
     # Codat
     codat_api_key: str = ""

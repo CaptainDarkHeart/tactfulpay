@@ -16,7 +16,7 @@ import logging
 from datetime import UTC, date, datetime
 from uuid import UUID
 
-import anthropic
+import openai
 
 from src.config import settings
 from src.db.models import (
@@ -268,7 +268,7 @@ def _process_invoice(
 
     try:
         msg = generate_message(ctx)
-    except (anthropic.APIError, RuntimeError):
+    except (openai.APIError, RuntimeError):
         logger.exception("Failed to generate message for invoice %s", invoice["invoice_number"])
         return False
 

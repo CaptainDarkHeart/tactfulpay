@@ -12,13 +12,13 @@ Three brain agentic workflow:
 
 **Sentry** (`src/sentry/`) Integration brain. Monitors accounting software (Codat, Xero, QuickBooks, CSV), identifies overdue invoices, pulls contact metadata, handles OAuth token management, and processes Codat and Stripe webhooks with idempotency.
 
-**Strategist** (`src/strategist/`) Psychological brain. LLM powered (Claude Sonnet 4). Manages phase state machine with `phase_start_date` based escalation timing. Classifies responses into 8 categories. Generates all messages using tactical empathy prompt templates with post generation guardrails.
+**Strategist** (`src/strategist/`) Psychological brain. LLM powered via OpenRouter with two separate pinned model fallback lists (see `src/config.py`), not the OpenRouter auto-router, to keep message tone and classification output format consistent: message generation leads with Qwen3 235B (tone/nuance), classification leads with GLM 4.7 Flash (cheap, fixed-category output, lower stakes since a parse failure just falls back to STALL). Manages phase state machine with `phase_start_date` based escalation timing. Classifies responses into 8 categories. Generates all messages using tactical empathy prompt templates with post generation guardrails.
 
 **Executor** (`src/executor/`) Multi channel brain. Sends emails (Resend), voice calls (Vapi/ElevenLabs), LinkedIn DMs. Handles variable cadence and custom sending domain setup.
 
 ## Tech Stack
 
-Python 3.11+ with Claude Sonnet 4 API, PostgreSQL (Supabase with Row Level Security), Resend, Vapi/ElevenLabs, Codat, Stripe, FastAPI dashboard with JWT auth.
+Python 3.11+ with OpenRouter (pinned model fallback, not the auto-router), PostgreSQL (Supabase with Row Level Security), Resend, Vapi/ElevenLabs, Codat, Stripe, FastAPI dashboard with JWT auth.
 
 ## Key Constraints
 
@@ -69,3 +69,12 @@ Live at https://tactfulpay-production.up.railway.app (Railway project `tactfulpa
 A `wrangler.toml` / Cloudflare Containers deploy path also exists in the repo but is unused: it requires the Workers Paid plan ($5/mo) on the Cloudflare account, which isn't enabled, and pushing the built image 401s without it. Railway was used instead since it needed no billing change.
 
 To go to full production: set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and the other keys listed in `.env.example` via `railway variables --set KEY=value`.
+
+### Cloudflare roadmap: two-path decision (2026-09-24, undecided)
+
+Cloudflare is on the product roadmap. `worker/index.ts` today is a thin lift-and-shift: it's a proxy + cron trigger wrapping the existing FastAPI app inside a Cloudflare Container (Durable Object running the repo `Dockerfile` unmodified). No business logic has moved into TypeScript, it's all plumbing. Two paths forward, not yet chosen:
+
+1. **Stay lift-and-shift** (low effort). Just enable Workers Paid ($5/mo) and `wrangler deploy`. Python remains the only real stack; TS never grows past this proxy file.
+2. **Go edge-native** (higher effort, bigger payoff). Move latency-sensitive bits out of the container into the Worker itself, e.g. Codat/Stripe webhook receipt + idempotency checks via D1 or KV (sub-ms, no container cold-start), leaving the container for Strategist's OpenRouter-powered logic and the dashboard. This is where TypeScript becomes a genuine second stack instead of glue. Keep Supabase Postgres as the source of truth regardless (RLS, tenant isolation); D1/KV would only be edge-local caching, not the main DB.
+
+Immediate unblock either way: enable Workers Paid plan so this stops being unused scaffolding.

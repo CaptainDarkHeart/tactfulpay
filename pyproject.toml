@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "AI-powered collections agent using psychological escalation techniques"
 requires-python = ">=3.11"
 dependencies = [
-    "anthropic>=0.40.0",
+    "openai>=1.50.0",
+    "resend>=2.0.0",
     "requests>=2.31.0",
     "supabase>=2.0.0",
     "stripe>=8.0.0",

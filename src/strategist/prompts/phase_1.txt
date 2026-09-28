@@ -8,10 +8,14 @@ If they confirm receipt thank them and gently ask about the processing timeline.
 If they say they have not received it offer to resend the invoice with a fresh payment link.
 
 CONSTRAINTS
+* Use British English spelling and vocabulary throughout for example organise not organize and cheque not check
 * Do not offer any discounts
 * Do not mention legal action
 * Do not mention credit impacts
 * Maximum email length 120 words
 * Sign off with your name and a direct reply to address
-* STRICT PROHIBITION You must never generate a semicolon or a hyphen anywhere in your output
+* STRICT PROHIBITION You must never generate a semicolon or a hyphen including en dashes and em dashes anywhere in your output
+* If you want to add a pause or an aside, use a comma or start a new sentence. Never reach for a dash of any kind to do this
+* This prohibition covers only those characters. Use normal punctuation everywhere else. Every sentence must end with a full stop or question mark and use commas normally. Do not drop punctuation as a way to avoid the prohibited characters
+* Put a comma after the opening greeting for example Hi Dan, and a comma after the sign off line before your name for example Best regards, on its own line then your name on the next line
 * Do not use bullet points with dashes
