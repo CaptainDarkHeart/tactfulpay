@@ -95,6 +95,7 @@ class StripeBilling:
         invoice_id: UUID,
         invoice_number: str,
         fee_amount: Decimal,
+        vat_amount: Decimal = Decimal("0"),
         currency: str = "GBP",
         customer_id: str | None = None,
         success_url: str = "https://tactfulpay.app/billing/success",
@@ -106,7 +107,9 @@ class StripeBilling:
             sme_id: The SME being charged.
             invoice_id: The invoice that was recovered.
             invoice_number: Human-readable invoice number.
-            fee_amount: The fee to charge.
+            fee_amount: The fee to charge, excluding VAT.
+            vat_amount: VAT on the fee. Zero unless settings.vat_registered
+                (see fee_calculator.calculate_fee).
             currency: Three-letter currency code.
             customer_id: Stripe Customer ID (if already known).
             success_url: Redirect URL after successful payment.
@@ -121,30 +124,50 @@ class StripeBilling:
         if amount_minor <= 0:
             return ChargeResult(success=False, error="Fee amount must be positive")
 
+        line_items = [
+            {
+                "price_data": {
+                    "currency": currency.lower(),
+                    "unit_amount": amount_minor,
+                    "product_data": {
+                        "name": f"Recovery fee — Invoice {invoice_number}",
+                        "description": (
+                            f"Success fee for recovering payment on invoice "
+                            f"{invoice_number}"
+                        ),
+                    },
+                },
+                "quantity": 1,
+            }
+        ]
+
+        vat_amount_minor = int(vat_amount * multiplier)
+        if vat_amount_minor > 0:
+            line_items.append(
+                {
+                    "price_data": {
+                        "currency": currency.lower(),
+                        "unit_amount": vat_amount_minor,
+                        "product_data": {
+                            "name": f"VAT ({settings.vat_rate:g}%)",
+                            "description": f"VAT on recovery fee for invoice {invoice_number}",
+                        },
+                    },
+                    "quantity": 1,
+                }
+            )
+
         try:
             session_params: dict = {
                 "mode": "payment",
-                "line_items": [
-                    {
-                        "price_data": {
-                            "currency": currency.lower(),
-                            "unit_amount": amount_minor,
-                            "product_data": {
-                                "name": f"Recovery fee — Invoice {invoice_number}",
-                                "description": (
-                                    f"Success fee for recovering payment on invoice "
-                                    f"{invoice_number}"
-                                ),
-                            },
-                        },
-                        "quantity": 1,
-                    }
-                ],
+                "line_items": line_items,
                 "metadata": {
                     "sme_id": str(sme_id),
                     "invoice_id": str(invoice_id),
                     "invoice_number": invoice_number,
                     "fee_type": "recovery_fee",
+                    "fee_amount": str(fee_amount),
+                    "vat_amount": str(vat_amount),
                 },
                 "success_url": success_url,
                 "cancel_url": cancel_url,
@@ -156,10 +179,11 @@ class StripeBilling:
             session = stripe.checkout.Session.create(**session_params)
 
             logger.info(
-                "Created checkout session %s for SME fee on invoice %s (£%.2f)",
+                "Created checkout session %s for SME fee on invoice %s (£%.2f + £%.2f VAT)",
                 session.id,
                 invoice_number,
                 fee_amount,
+                vat_amount,
             )
 
             return ChargeResult(
@@ -195,6 +219,8 @@ class StripeBilling:
             "invoice_id": metadata.get("invoice_id"),
             "invoice_number": metadata.get("invoice_number"),
             "payment_intent_id": payment_intent_id,
+            "fee_amount": metadata.get("fee_amount"),
+            "vat_amount": metadata.get("vat_amount"),
             "amount_total": session.get("amount_total"),
             "currency": session.get("currency"),
         }

@@ -81,6 +81,8 @@ class Settings(BaseSettings):
     fee_flat_amount: float = 500.0
     fee_percentage: float = 10.0
     fee_percentage_threshold: float = 5000.0
+    vat_registered: bool = False
+    vat_rate: float = 20.0
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

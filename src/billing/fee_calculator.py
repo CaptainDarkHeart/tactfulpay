@@ -4,6 +4,9 @@ Business rules:
 - For invoices over GBP 5,000 (FEE_PERCENTAGE_THRESHOLD): 10% of recovered amount
 - For invoices at or below GBP 5,000, OR stalled invoices 60+ days: GBP 500 flat fee
 - If nothing is recovered, no fee is charged
+- VAT is added on top at settings.vat_rate, but only once settings.vat_registered is
+  true. Debt collection fees are excluded from the financial services VAT exemption
+  (Sch 9 Group 5, VATA 1994), so the fee is standard rated once registered.
 """
 
 from __future__ import annotations
@@ -53,11 +56,17 @@ def calculate_fee(
         fee_amount = flat_amount
         fee_type = FeeType.FLAT
 
+    vat_amount = Decimal("0")
+    if settings.vat_registered:
+        vat_rate = Decimal(str(settings.vat_rate))
+        vat_amount = (fee_amount * vat_rate / 100).quantize(Decimal("0.01"))
+
     return Fee(
         invoice_id=UUID(str(invoice_id)),
         sme_id=UUID(str(sme_id)),
         fee_type=fee_type,
         fee_amount=fee_amount,
+        vat_amount=vat_amount,
         invoice_amount_recovered=invoice_amount,
         status=FeeStatus.PENDING,
     )

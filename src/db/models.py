@@ -200,6 +200,7 @@ class Fee(BaseModel):
     sme_id: UUID
     fee_type: FeeType
     fee_amount: Decimal
+    vat_amount: Decimal = Decimal("0")
     invoice_amount_recovered: Decimal
     stripe_payment_intent_id: str | None = None
     status: FeeStatus = FeeStatus.PENDING
