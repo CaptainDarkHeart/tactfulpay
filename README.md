@@ -21,7 +21,7 @@ The system uses a strict separation of concerns across three logical brains.
 | Brain | Module | Responsibility |
 |---|---|---|
 | Sentry | `src/sentry/` | Integration layer. Monitors accounting software via Codat, Xero, QuickBooks, and CSV. Pulls contact metadata. Handles OAuth and webhooks. |
-| Strategist | `src/strategist/` | Psychological layer. LLM powered (Claude Sonnet 4). Manages the phase state machine, classifies inbound responses, and generates all outbound messaging. |
+| Strategist | `src/strategist/` | Psychological layer. LLM powered via OpenRouter with pinned model fallback lists (Qwen3 235B for message generation, GLM 4.7 Flash for classification), not the auto-router, to keep tone and output format consistent. Manages the phase state machine, classifies inbound responses, and generates all outbound messaging. |
 | Executor | `src/executor/` | Delivery layer. Sends emails via Resend, voice calls via Vapi and ElevenLabs, and LinkedIn DMs. Manages variable cadence and custom sending domains. |
 
 ## Business Model
@@ -67,7 +67,7 @@ docker compose up dashboard scheduler
 | Component | Tool |
 |---|---|
 | Language | Python 3.11+ |
-| LLM | Claude Sonnet 4 (Anthropic API) |
+| LLM | OpenRouter, pinned model fallback lists (Qwen3 235B, DeepSeek V3.2, GLM), not the auto-router |
 | Email | Resend (transactional) |
 | Voice | Vapi + ElevenLabs |
 | Accounting API | Codat, Xero (OAuth), QuickBooks (OAuth), CSV upload |
@@ -137,7 +137,7 @@ scripts/
   run_daily_sync.py             Cron entry point
   seed_test_data.py             Seed database with test invoices
 
-tests/                          276 passing tests
+tests/                          266 passing tests (15 more fail locally on a blank CODAT_WEBHOOK_SECRET/CODAT_API_KEY, not a code bug)
 ```
 
 ## Payment Detection
@@ -154,7 +154,7 @@ In all cases, a fee is created only if `first_contacted_at` is set (meaning the 
 
 ## Reply Classification
 
-Inbound replies are classified by Claude Sonnet 4 into one of eight categories.
+Inbound replies are classified by OpenRouter's pinned classifier model (GLM 4.7 Flash leading) into one of eight categories.
 
 | Classification | Agent Action |
 |---|---|
@@ -225,6 +225,8 @@ uvicorn src.dashboard.app:app --reload --port 8000
 
 ## Status
 
-Phase 2 complete. 276 tests passing.
+Phase 2 complete. 266 tests passing, 15 failing locally on a blank `CODAT_WEBHOOK_SECRET`/`CODAT_API_KEY` (intentional fail-closed behavior, not a code bug).
 
-Recent improvements include the phase start date based escalation fix ensuring the 21 day behavioral cycle maintains accuracy, Row Level Security migration for tenant isolation, JWT based dashboard authentication (placeholder for Supabase Auth), Chris Voss tactical empathy prompt standardization across all four phases, and post generation punctuation guardrails.
+Recent improvements include the phase start date based escalation fix ensuring the 21 day behavioral cycle maintains accuracy, Row Level Security migration for tenant isolation, JWT based dashboard authentication (placeholder for Supabase Auth), the Strategist LLM swap from Claude to pinned OpenRouter models, Chris Voss tactical empathy prompt standardization across all four phases, and post generation punctuation guardrails.
+
+Live demo at https://tactfulpay-production.up.railway.app. See `CLAUDE.md` for deployment details and the Railway vs Cloudflare hosting decision.

@@ -41,7 +41,7 @@ _security = HTTPBasic(auto_error=False)
 _DASHBOARD_PASSWORD = settings.dashboard_password
 
 # Paths accessible without authentication
-_PUBLIC_PATHS = {"/", "/health", "/login", "/api/auth/login", "/internal/run-daily-sync"}
+_PUBLIC_PATHS = {"/", "/health", "/login", "/api/auth/login", "/internal/run-daily-sync", "/signup"}
 
 
 def _require_auth(
@@ -1195,9 +1195,32 @@ async def api_update_sme(sme_id: str, request: Request):
 # ---------------------------------------------------------------------------
 
 
+def _create_sme(
+    company_name: str,
+    contact_email: str,
+    contact_phone: str,
+    accounting_platform: str,
+    discount_authorised: bool,
+    max_discount_percent: float,
+):
+    """Shared SME-creation logic for both the internal Add Client tool and public signup."""
+    from src.db.models import SME as _SME
+
+    sme = _SME(
+        company_name=company_name,
+        contact_email=contact_email,
+        contact_phone=contact_phone,
+        accounting_platform=accounting_platform,
+        discount_authorised=discount_authorised,
+        max_discount_percent=max_discount_percent,
+    )
+    _db().create_sme(sme)
+    return sme
+
+
 @app.get("/onboard", response_class=HTMLResponse)
 async def onboard_page():
-    """SME onboarding form."""
+    """Internal admin tool for adding a client directly (ops use, not client-facing)."""
     return HTMLResponse(_onboard_html())
 
 
@@ -1210,20 +1233,52 @@ async def onboard_submit(
     discount_authorised: bool = Form(False),
     max_discount_percent: float = Form(0),
 ):
-    """Create SME from onboarding form and redirect to dashboard."""
-    from src.db.models import SME as _SME
-
-    sme = _SME(
-        company_name=company_name,
-        contact_email=contact_email,
-        contact_phone=contact_phone,
-        accounting_platform=accounting_platform,
-        discount_authorised=discount_authorised,
-        max_discount_percent=max_discount_percent,
+    """Create SME from the internal Add Client form and redirect to domain setup."""
+    sme = _create_sme(
+        company_name,
+        contact_email,
+        contact_phone,
+        accounting_platform,
+        discount_authorised,
+        max_discount_percent,
     )
-    db = _db()
-    db.create_sme(sme)
     return RedirectResponse(f"/sme/{sme.id}/domain?new=true", status_code=303)
+
+
+@app.get("/signup", response_class=HTMLResponse, dependencies=[])
+async def signup_page():
+    """Public client self-service account setup, reached from the landing page CTA."""
+    return HTMLResponse(_signup_html())
+
+
+@app.post("/signup", dependencies=[])
+async def signup_submit(
+    company_name: str = Form(...),
+    contact_email: str = Form(...),
+    contact_phone: str = Form(""),
+    accounting_platform: str = Form("csv"),
+):
+    """Create SME from the public signup form and continue into email domain setup."""
+    sme = _create_sme(
+        company_name,
+        contact_email,
+        contact_phone,
+        accounting_platform,
+        discount_authorised=False,
+        max_discount_percent=0,
+    )
+    redirect = RedirectResponse(f"/sme/{sme.id}/domain?new=true&signup=true", status_code=303)
+    if DEMO_MODE:
+        # Same mechanism /api/auth/login uses in demo mode: an access_token cookie
+        # authenticates the rest of the flow (email domain setup) for the new signup.
+        redirect.set_cookie(
+            key="access_token",
+            value=f"dummy_jwt_for_{contact_email}",
+            httponly=True,
+            secure=True,
+            samesite="lax",
+        )
+    return redirect
 
 
 # ---------------------------------------------------------------------------
@@ -1232,7 +1287,12 @@ async def onboard_submit(
 
 
 @app.get("/sme/{sme_id}/domain", response_class=HTMLResponse)
-async def domain_setup_page(sme_id: str, new: str | None = None, verified: str | None = None):
+async def domain_setup_page(
+    sme_id: str,
+    new: str | None = None,
+    verified: str | None = None,
+    signup: str | None = None,
+):
     """Email domain configuration page."""
     db = _db()
     sme = db.get_sme(UUID(sme_id))
@@ -1241,12 +1301,20 @@ async def domain_setup_page(sme_id: str, new: str | None = None, verified: str |
 
     domain_record = db.get_email_domain_by_sme(UUID(sme_id))
     return HTMLResponse(
-        _domain_html(sme, domain_record, is_new=new == "true", just_verified=verified == "true")
+        _domain_html(
+            sme,
+            domain_record,
+            is_new=new == "true",
+            just_verified=verified == "true",
+            is_signup=signup == "true",
+        )
     )
 
 
 @app.post("/sme/{sme_id}/domain")
-async def domain_register(sme_id: str, domain_name: str = Form(...)):
+async def domain_register(
+    sme_id: str, domain_name: str = Form(...), signup: str = Form("")
+):
     """Register a custom email domain via Resend."""
     from src.db.models import EmailDomain, EmailDomainStatus
 
@@ -1255,10 +1323,12 @@ async def domain_register(sme_id: str, domain_name: str = Form(...)):
     if not sme:
         return HTMLResponse("SME not found", status_code=404)
 
+    signup_qs = "?signup=true" if signup == "true" else ""
+
     # Check if domain already exists for this SME
     existing = db.get_email_domain_by_sme(UUID(sme_id))
     if existing:
-        return RedirectResponse(f"/sme/{sme_id}/domain", status_code=303)
+        return RedirectResponse(f"/sme/{sme_id}/domain{signup_qs}", status_code=303)
 
     if DEMO_MODE:
         # In demo mode, create a mock domain record
@@ -1304,9 +1374,10 @@ async def domain_register(sme_id: str, domain_name: str = Form(...)):
                     <div class="card"><div class="card-body">
                         <h2 style="color:var(--danger)">Domain Registration Failed</h2>
                         <p>{_escape(result.error or "Unknown error")}</p>
-                        <a href="/sme/{sme_id}/domain" class="btn btn-primary" style="margin-top:16px">Try Again</a>
+                        <a href="/sme/{sme_id}/domain{signup_qs}" class="btn btn-primary" style="margin-top:16px">Try Again</a>
                     </div></div>
                 </div>""",
+                    public=signup == "true",
                 ),
                 status_code=400,
             )
@@ -1321,16 +1392,17 @@ async def domain_register(sme_id: str, domain_name: str = Form(...)):
         )
         db.create_email_domain(domain)
 
-    return RedirectResponse(f"/sme/{sme_id}/domain", status_code=303)
+    return RedirectResponse(f"/sme/{sme_id}/domain{signup_qs}", status_code=303)
 
 
 @app.post("/sme/{sme_id}/domain/verify")
-async def domain_verify(sme_id: str):
+async def domain_verify(sme_id: str, signup: str = Form("")):
     """Trigger domain verification check."""
+    signup_qs = "?signup=true" if signup == "true" else ""
     db = _db()
     domain_record = db.get_email_domain_by_sme(UUID(sme_id))
     if not domain_record:
-        return RedirectResponse(f"/sme/{sme_id}/domain", status_code=303)
+        return RedirectResponse(f"/sme/{sme_id}/domain{signup_qs}", status_code=303)
 
     if DEMO_MODE:
         # In demo mode, just mark as verified
@@ -1358,10 +1430,15 @@ async def domain_verify(sme_id: str):
                 updates["verified_at"] = datetime.now(tz=UTC).replace(tzinfo=None).isoformat()
         db.update_email_domain(UUID(domain_record["id"]), updates)
 
-    redirect_url = f"/sme/{sme_id}/domain"
     updated = db.get_email_domain_by_sme(UUID(sme_id))
+    params = []
     if updated and updated.get("status") == "verified":
-        redirect_url += "?verified=true"
+        params.append("verified=true")
+    if signup == "true":
+        params.append("signup=true")
+    redirect_url = f"/sme/{sme_id}/domain"
+    if params:
+        redirect_url += "?" + "&".join(params)
     return RedirectResponse(redirect_url, status_code=303)
 
 
@@ -2322,7 +2399,7 @@ def _landing_html() -> str:
         <a href="#portal">Get Started</a>
     </div>
     <div class="lp-nav-actions">
-        <a href="#portal" class="btn-primary">Secure My Cash Flow</a>
+        <a href="/signup" class="btn-primary">Secure My Cash Flow</a>
         <a href="/dashboard" class="btn-login">Login</a>
     </div>
 </nav>
@@ -2339,7 +2416,7 @@ def _landing_html() -> str:
             <span class="green">Relationships intact.</span>
         </h1>
         <p class="lp-hero-desc">Stop chasing invoices with generic templates or aggressive collectors. TactfulPay uses behavioral psychology and tactical empathy to secure your payments while preserving your client bonds &mdash; all with zero upfront cost.</p>
-        <a href="#portal" class="lp-hero-cta">
+        <a href="/signup" class="lp-hero-cta">
             Secure My Cash Flow
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
@@ -2472,7 +2549,7 @@ def _landing_html() -> str:
                     <span class="lp-integration-tag">FreshBooks</span>
                     <span class="lp-integration-tag">Custom CSV</span>
                 </div>
-                <a href="/onboard" class="lp-portal-cta">
+                <a href="/signup" class="lp-portal-cta">
                     Secure My Cash Flow
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </a>
@@ -2533,7 +2610,32 @@ def _landing_html() -> str:
 </html>"""
 
 
-def _base_html(title: str, content: str) -> str:
+def _base_html(title: str, content: str, public: bool = False) -> str:
+    nav = (
+        """<nav class="nav">
+        <a href="/" class="nav-brand">
+            <div class="nav-logo">
+                <img src="/static/logo-square.png" alt="TactfulPay">
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="/login" class="nav-link">Login</a>
+        </div>
+    </nav>"""
+        if public
+        else """<nav class="nav">
+        <a href="/dashboard" class="nav-brand">
+            <div class="nav-logo">
+                <img src="/static/logo-square.png" alt="TactfulPay">
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="/dashboard" class="nav-link active">Dashboard</a>
+            <a href="/onboard" class="nav-link">Add Client</a>
+            <a href="/reports" class="nav-link">Reports</a>
+        </div>
+    </nav>"""
+    )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3125,18 +3227,7 @@ def _base_html(title: str, content: str) -> str:
     </style>
 </head>
 <body>
-    <nav class="nav">
-        <a href="/dashboard" class="nav-brand">
-            <div class="nav-logo">
-                <img src="/static/logo-square.png" alt="TactfulPay">
-            </div>
-        </a>
-        <div class="nav-links">
-            <a href="/dashboard" class="nav-link active">Dashboard</a>
-            <a href="/onboard" class="nav-link">Add Client</a>
-            <a href="/reports" class="nav-link">Reports</a>
-        </div>
-    </nav>
+    {nav}
     {content}
 </body>
 </html>"""
@@ -3355,17 +3446,27 @@ def _detail_html(
 
 
 def _domain_html(
-    sme: dict, domain_record: dict | None, is_new: bool = False, just_verified: bool = False
+    sme: dict,
+    domain_record: dict | None,
+    is_new: bool = False,
+    just_verified: bool = False,
+    is_signup: bool = False,
 ) -> str:
     company = _escape(sme.get("company_name", ""))
     sme_id = sme["id"]
+    signup_field = '<input type="hidden" name="signup" value="true">' if is_signup else ""
 
     flash = ""
     if is_new:
+        onboarded_msg = (
+            "Account created. Now set up your sending domain."
+            if is_signup
+            else "Client onboarded successfully. Now set up their email domain."
+        )
         flash = (
             f'<div style="background:{COLORS["success"]};color:white;padding:12px 20px;'
             f'border-radius:8px;margin-bottom:16px">'
-            f"&#10003; Client onboarded successfully. Now set up their email domain.</div>"
+            f"&#10003; {onboarded_msg}</div>"
         )
     elif just_verified:
         flash = (
@@ -3385,6 +3486,7 @@ def _domain_html(
                     register the domain below. You'll receive DNS records to add to your DNS provider.
                 </p>
                 <form method="post" action="/sme/{sme_id}/domain">
+                    {signup_field}
                     <div style="margin-bottom:20px">
                         <label class="meta-label" for="domain_name">Domain Name *</label>
                         <input type="text" name="domain_name" id="domain_name" required
@@ -3424,6 +3526,13 @@ def _domain_html(
                     <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px">Sending as</div>
                     <div style="font-size:15px;font-weight:600;color:var(--text-primary)">{sending}</div>
                 </div>
+                {
+                    '<p style="margin-top:20px;color:var(--text-secondary);font-size:14px">'
+                    'Your account is set up. Upload a CSV of overdue invoices, or connect Xero or '
+                    'QuickBooks, and TactfulPay starts working them the same day. '
+                    '<a href="/login">Log in</a> to get started.</p>'
+                    if is_signup else ""
+                }
             </div>
         </div>"""
     else:
@@ -3472,6 +3581,7 @@ def _domain_html(
                 </table>
 
                 <form method="post" action="/sme/{sme_id}/domain/verify">
+                    {signup_field}
                     <button type="submit" class="btn btn-primary">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
@@ -3482,22 +3592,34 @@ def _domain_html(
             </div>
         </div>"""
 
+    back_link = (
+        f'<a href="/" class="back-link">'
+        f'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+        f'<polyline points="15 18 9 12 15 6"/></svg>Back to TactfulPay</a>'
+        if is_signup
+        else '<a href="/" class="back-link">'
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+        '<polyline points="15 18 9 12 15 6"/></svg>Back to Dashboard</a>'
+    )
+    page_desc = (
+        f"Last step. Configure the domain your collection emails will send from for {company}."
+        if is_signup
+        else f"Configure the sending domain for {company}'s collection emails."
+    )
     return _base_html(
-        f"Email Setup — {company}",
+        f"Email Setup · {company}",
         f"""
     <div class="container" style="max-width:780px">
-        <a href="/" class="back-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-            Back to Dashboard
-        </a>
+        {back_link}
         <div class="page-header">
             <h1>Email Setup</h1>
-            <p>Configure the sending domain for {company}'s collection emails.</p>
+            <p>{page_desc}</p>
         </div>
         {flash}
         {content}
     </div>
     """,
+        public=is_signup,
     )
 
 
@@ -3563,4 +3685,60 @@ def _onboard_html() -> str:
         </div>
     </div>
     """,
+    )
+
+
+def _signup_html() -> str:
+    return _base_html(
+        "Set Up Your Account",
+        f"""
+    <div class="container" style="max-width:680px">
+        <a href="/" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to TactfulPay
+        </a>
+        <div class="page-header">
+            <h1>Secure Your Cash Flow</h1>
+            <p>Zero upfront cost. Zero setup fees. Tell us about your business and we'll take it from there.</p>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <form method="post" action="/signup">
+                    <div style="margin-bottom:20px">
+                        <label class="meta-label" for="company_name">Company Name *</label>
+                        <input type="text" name="company_name" id="company_name" required
+                               style="display:block;width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--white);color:var(--text-primary);margin-top:6px">
+                    </div>
+                    <div style="margin-bottom:20px">
+                        <label class="meta-label" for="contact_email">Your Email *</label>
+                        <input type="email" name="contact_email" id="contact_email" required
+                               style="display:block;width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--white);color:var(--text-primary);margin-top:6px">
+                    </div>
+                    <div style="margin-bottom:20px">
+                        <label class="meta-label" for="contact_phone">Phone</label>
+                        <input type="tel" name="contact_phone" id="contact_phone"
+                               style="display:block;width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--white);color:var(--text-primary);margin-top:6px">
+                    </div>
+                    <div style="margin-bottom:24px">
+                        <label class="meta-label" for="accounting_platform">How do you track invoices?</label>
+                        <select name="accounting_platform" id="accounting_platform"
+                                style="display:block;width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--white);color:var(--text-primary);margin-top:6px">
+                            <option value="csv">CSV export / spreadsheet</option>
+                            <option value="xero">Xero</option>
+                            <option value="quickbooks">QuickBooks</option>
+                        </select>
+                        <p style="font-size:12px;color:var(--text-muted);margin-top:6px">
+                            You can connect Xero or QuickBooks, or just upload a CSV, once your account is set up.
+                        </p>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        Secure My Cash Flow
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    """,
+        public=True,
     )

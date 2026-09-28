@@ -72,13 +72,30 @@ Phase 2 complete. 266 tests passing, 15 failing locally due to blank `CODAT_WEBH
 
 Live at https://tactfulpay-production.up.railway.app (Railway project `tactfulpay`, service deployed from repo `Dockerfile`, redeployed via `railway up`). Currently demo mode: `OPENROUTER_API_KEY` is set, but `SUPABASE_URL` and other keys aren't, so the dashboard still runs on in-memory demo data. `PORT=8000` and the domain's target port are set explicitly since Railway did not autodetect them.
 
+The Railway account is on the **trial plan**, not a paid Hobby plan, as of 2026-09-28. `railway usage` shows real metered cost is ~$0.08/mo (near-zero traffic), so current actual spend is $0/mo, absorbed by trial credit. It converts to $5/mo Hobby once the trial ends. Don't assume "$5/mo Railway hosting" is a current cost, confirm plan tier at railway.com/account/plans if it matters again.
+
 `railway.json` config is deprecated in favor of `.railway/railway.ts` (existing file keeps working until 2026-12-01, run `railway config migrate` to switch).
 
 A `wrangler.toml` / Cloudflare Containers deploy path also exists in the repo but is unused: it requires the Workers Paid plan ($5/mo) on the Cloudflare account, which isn't enabled, and pushing the built image 401s without it. Railway was used instead since it needed no billing change.
 
 To go to full production: set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and the other keys listed in `.env.example` via `railway variables --set KEY=value`.
 
-### Cloudflare roadmap: two-path decision (2026-09-24, undecided)
+### Hosting platform: Dan prefers Cloudflare over Railway (decided 2026-09-28)
+
+At current traffic and at a projected 10-customer scale, cost is a wash between the two (~$0-5/mo either way, see Economics below), so the case for Cloudflare isn't near-term savings, it's scale-to-zero billing and the option to move latency-sensitive bits to the edge as volume grows (see the two-path decision below). Default new hosting/infra work toward the Cloudflare Containers path, but it isn't live yet, migration still needs the Workers Paid plan enabled and testing before cutting Railway over.
+
+### Cost model at 10 active customers (2026-09-28)
+
+Built from the actual phase cadence in `src/strategist/state_machine.py` (9 message touchpoints and 4 voice touchpoints per invoice across a full 21-day cycle, assuming ~5 open invoices per customer), live OpenRouter pricing, and vendor pricing pages for Resend and Vapi. Full breakdown with reasoning lives in the "Economics, as discussed" section of `docs/work-plan-2026-09-28.html` and `docs/sprint-plan-2026-09-28.html` (also published at https://claude.ai/artifact/NyPV4yPcU15HDJbVoKfLD7).
+
+| Line | Estimate | Why |
+|---|---|---|
+| Hosting (Railway or Cloudflare) | $0-5/mo | Both stay within plan-minimum/free-included compute at this traffic |
+| OpenRouter (LLM) | ~$0.12/mo | Qwen3 235B + GLM 4.7 Flash cost fractions of a cent per invoice |
+| Resend (email) | $0/mo | ~643 emails/mo, well inside the 3,000/mo free tier (covers up to ~66 customers at this cadence) |
+| Vapi/ElevenLabs (voice) | ~$35-55/mo (upper bound) | Only cost line that scales meaningfully; assumes every invoice escalates to Phase 3, which the product design intends to avoid. `src/executor/voice_caller.py` is still a stub, so this is vendor list pricing, not measured |
+
+### Cloudflare roadmap: two-path decision (2026-09-24, platform choice made 2026-09-28, path not yet chosen)
 
 Cloudflare is on the product roadmap. `worker/index.ts` today is a thin lift-and-shift: it's a proxy + cron trigger wrapping the existing FastAPI app inside a Cloudflare Container (Durable Object running the repo `Dockerfile` unmodified). No business logic has moved into TypeScript, it's all plumbing. Two paths forward, not yet chosen:
 
