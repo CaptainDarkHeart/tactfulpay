@@ -45,7 +45,10 @@ class TestPhaseZeroPrompt:
 
 
 class TestPhaseFourStatutoryFigures:
-    @patch("src.strategist.message_generator.get_boe_base_rate_percent", return_value=Decimal("4.0"))
+    @patch(
+        "src.strategist.message_generator.get_boe_base_rate_percent",
+        return_value=Decimal("4.0"),
+    )
     def test_includes_exact_calculated_figures(self, mock_rate):
         ctx = _base_ctx(phase=InvoicePhase.PHASE_4, days_overdue=16, amount="4500.00")
         prompt = _build_user_prompt(ctx)
@@ -54,7 +57,10 @@ class TestPhaseFourStatutoryFigures:
         assert "trade credit reporting" in prompt
         assert "12.0%" in prompt
 
-    @patch("src.strategist.message_generator.get_boe_base_rate_percent", return_value=Decimal("4.0"))
+    @patch(
+        "src.strategist.message_generator.get_boe_base_rate_percent",
+        return_value=Decimal("4.0"),
+    )
     def test_total_due_is_principal_plus_interest_plus_compensation(self, mock_rate):
         ctx = _base_ctx(phase=InvoicePhase.PHASE_4, days_overdue=16, amount="4500.00")
         prompt = _build_user_prompt(ctx)

@@ -61,7 +61,8 @@ class TestCalculateStatutoryCharges:
         charges = calculate_statutory_charges(
             principal=Decimal("4500.00"), days_overdue=16, boe_base_rate_percent=Decimal("4.0")
         )
-        assert charges.total_due == charges.principal + charges.accrued_interest + charges.compensation_fee
+        expected = charges.principal + charges.accrued_interest + charges.compensation_fee
+        assert charges.total_due == expected
 
     def test_non_positive_principal_raises(self):
         with pytest.raises(ValueError):

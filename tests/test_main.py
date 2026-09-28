@@ -201,6 +201,36 @@ class TestRunDailyCycle:
 
         db.list_active_invoices.assert_not_called()
 
+    @patch("src.main.generate_message")
+    @patch("src.main.send_collection_email")
+    @patch("src.main.schedule_next_send")
+    def test_total_sent_accumulates_across_smes(self, mock_schedule, mock_send, mock_gen, caplog):
+        """The final total must count emails from every SME, not just the last one.
+
+        Regression test: emails_sent_by_inbox used to be reset inside the
+        per-SME loop, so the end-of-cycle total only ever reflected the last
+        SME processed (and crashed outright with zero SMEs).
+        """
+        sme_a = _make_sme(id=str(uuid4()), company_name="Alpha Ltd")
+        sme_b = _make_sme(id=str(uuid4()), company_name="Beta Ltd")
+        inv_a = _make_invoice(id=str(uuid4()), sme_id=sme_a["id"])
+        inv_b = _make_invoice(id=str(uuid4()), sme_id=sme_b["id"])
+
+        db = _mock_db()
+        db.list_active_smes.return_value = [sme_a, sme_b]
+        db.list_active_invoices.side_effect = [[inv_a], [inv_b]]
+
+        mock_schedule.return_value = _NOW - timedelta(hours=1)
+        mock_gen.return_value = GeneratedMessage(subject="Hi", body="Hello")
+        mock_send.return_value = EmailResult(success=True, message_id="m1")
+
+        with caplog.at_level("INFO"):
+            run_daily_cycle(
+                db=db, email_client=_mock_email_client(), payment_links=_mock_payment_links()
+            )
+
+        assert "Total emails sent: 2" in caplog.text
+
 
 # ---------------------------------------------------------------------------
 # _process_invoice

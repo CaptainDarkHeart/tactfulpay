@@ -32,7 +32,7 @@ All generated messaging must use Chris Voss tactical empathy principles (late ni
 
 **The hyphen ban must include unicode dashes.** `_enforce_banned_words` in `message_generator.py` rejects `[;\-–—]`, not just ASCII hyphen. Models substitute em-dash (—) for a plain hyphen about as often as not when asked to avoid one, an ASCII-only regex misses roughly half of violations.
 
-**Local webhook tests need real-looking secrets.** `tests/test_webhook_handler.py` hits `/webhooks/codat`, which 500s immediately if `CODAT_WEBHOOK_SECRET` is blank in `.env`. This is intentional fail-closed behavior, not a bug, set a dummy value locally if you need those tests green.
+**Webhook tests are self-contained, they don't read `.env`.** `tests/test_webhook_handler.py` patches `settings.codat_webhook_secret`/`settings.stripe_webhook_secret` directly and computes a real HMAC signature over the exact request bytes sent (see `_post_codat_webhook` in that file), so they pass identically locally and in CI regardless of what's in `.env`. If a previous version of this note told you to set a dummy `CODAT_WEBHOOK_SECRET` in `.env` to get these green, that was incomplete, the tests were also missing the signature header and a fixture `due_date` key, both fixed 2026-09-28.
 
 **Statutory interest fetches the BoE base rate live, with a manual fallback.** `src/billing/boe_rate.py` pulls the official Bank Rate (series IUDBEDR) from the Bank of England's public IADB CSV endpoint at runtime, cached 6 hours. If that fetch fails, times out, or the response is unparseable, it falls back to `settings.boe_base_rate_percent` (`src/config.py`), which is not live and should still be nudged towards reality occasionally so a prolonged BoE outage doesn't quote a stale rate. `src/billing/statutory_interest.py` adds 8% to whichever value comes back, per the Late Payment of Commercial Debts (Interest) Act 1998, and this is only ever cited with exact figures in Phase 4 messaging (`src/strategist/message_generator.py`), never invented by the LLM.
 
@@ -70,7 +70,7 @@ uvicorn src.dashboard.app:app --reload --port 8000
 
 ## Current Status
 
-Phase 2 complete. 288 tests passing, 15 failing locally due to blank `CODAT_WEBHOOK_SECRET`/`CODAT_API_KEY` in `.env` (not a code bug, see Gotchas). Key recent updates include phase_start_date based escalation for accurate 21 day cycle, Row Level Security migration, JWT authentication for the dashboard, the Strategist LLM swap from Claude to pinned OpenRouter models, post generation punctuation guardrails covering both subject and body, VAT on the recovery fee (gated behind `vat_registered`), and Phase 0 plus statutory interest/compensation calculation adopted from Stewart's TactfulPay v2 spec.
+Phase 2 complete. 310 tests passing, 0 failing (as of 2026-09-28, both locally and with `.env` absent, matching CI). Key recent updates include phase_start_date based escalation for accurate 21 day cycle, Row Level Security migration, JWT authentication for the dashboard, the Strategist LLM swap from Claude to pinned OpenRouter models, post generation punctuation guardrails covering both subject and body, VAT on the recovery fee (gated behind `vat_registered`), Phase 0 plus statutory interest/compensation calculation adopted from Stewart's TactfulPay v2 spec, and a fix for a live bug in `run_daily_cycle` (`src/main.py`) where the daily email total was reset per SME instead of accumulated, plus a crash on an empty SME list.
 
 ## Deployment
 

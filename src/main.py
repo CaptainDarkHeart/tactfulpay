@@ -58,13 +58,13 @@ def run_daily_cycle(
     # Check pending domain verifications
     _check_pending_domains(db)
 
+    # Track emails per inbox (sending domain) across all SMEs
+    emails_sent_by_inbox: dict[str, int] = {}
+
     for sme in db.list_active_smes():
         sme_id = sme["id"]
         sme_name = sme["company_name"]
         logger.info("Processing SME: %s (%s)", sme_name, sme_id)
-
-        # Track emails per inbox (sending domain) for this SME
-        emails_sent_by_inbox: dict[str, int] = {}
 
         for invoice in db.list_active_invoices(sme_id=UUID(sme_id)):
             # Determine the sending inbox for this invoice

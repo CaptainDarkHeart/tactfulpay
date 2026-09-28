@@ -1,5 +1,9 @@
 """Tests for Codat and Stripe webhook handlers."""
 
+import hashlib
+import hmac
+import json
+from datetime import date, timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -11,51 +15,80 @@ from src.db.models import FeeType, InvoicePhase, InvoiceStatus
 
 client = TestClient(app, headers={"Authorization": "Basic dXNlcjp0ZXN0"})
 
+CODAT_TEST_SECRET = "test-codat-secret"
+
+
+def _codat_signature(body: bytes, secret: str = CODAT_TEST_SECRET) -> str:
+    """Compute the HMAC signature the route expects, matching
+    src.sentry.webhook_handler._verify_codat_signature."""
+    return hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+
+
+def _post_codat_webhook(payload: dict, secret: str = CODAT_TEST_SECRET):
+    """POST to /webhooks/codat with a real HMAC signature over the exact body
+    bytes sent. Uses content= rather than json= so the bytes we sign are the
+    bytes the server verifies, not a re-serialisation of the same dict."""
+    body = json.dumps(payload).encode()
+    return client.post(
+        "/webhooks/codat",
+        content=body,
+        headers={
+            "X-Codat-Signature": _codat_signature(body, secret),
+            "Content-Type": "application/json",
+        },
+    )
+
 
 class TestCodatWebhook:
+    @patch("src.sentry.webhook_handler.settings")
     @patch("src.sentry.webhook_handler.Database")
-    def test_codat_webhook_accepts_valid_payload(self, mock_db_cls):
+    def test_codat_webhook_accepts_valid_payload(self, mock_db_cls, mock_settings):
+        mock_settings.codat_webhook_secret = CODAT_TEST_SECRET
+        mock_settings.supabase_url = "https://fake.supabase.co"
         mock_db = MagicMock()
-        mock_db.has_processed_event.return_value = False
+        mock_db.try_mark_event_processed.return_value = True
         mock_db_cls.return_value = mock_db
-        resp = client.post(
-            "/webhooks/codat",
-            json={
+        resp = _post_codat_webhook(
+            {
                 "AlertType": "DataSyncCompleted",
                 "CompanyId": "comp-123",
                 "DataType": "customers",
-            },
+            }
         )
         assert resp.status_code == 200
         assert resp.json() == {"received": True}
 
+    @patch("src.sentry.webhook_handler.settings")
     @patch("src.sentry.webhook_handler.Database")
-    def test_codat_webhook_unknown_type(self, mock_db_cls):
+    def test_codat_webhook_unknown_type(self, mock_db_cls, mock_settings):
+        mock_settings.codat_webhook_secret = CODAT_TEST_SECRET
+        mock_settings.supabase_url = "https://fake.supabase.co"
         mock_db = MagicMock()
-        mock_db.has_processed_event.return_value = False
+        mock_db.try_mark_event_processed.return_value = True
         mock_db_cls.return_value = mock_db
-        resp = client.post(
-            "/webhooks/codat",
-            json={
+        resp = _post_codat_webhook(
+            {
                 "AlertType": "SomethingElse",
                 "CompanyId": "comp-123",
-            },
+            }
         )
         assert resp.status_code == 200
 
+    @patch("src.sentry.webhook_handler.settings")
     @patch("src.sentry.webhook_handler.Database")
     @patch("src.sentry.invoice_sync.run_invoice_sync")
-    def test_codat_sync_complete_triggers_sync(self, mock_sync, mock_db_cls):
+    def test_codat_sync_complete_triggers_sync(self, mock_sync, mock_db_cls, mock_settings):
+        mock_settings.codat_webhook_secret = CODAT_TEST_SECRET
+        mock_settings.supabase_url = "https://fake.supabase.co"
         mock_db = MagicMock()
-        mock_db.has_processed_event.return_value = False
+        mock_db.try_mark_event_processed.return_value = True
         mock_db_cls.return_value = mock_db
-        resp = client.post(
-            "/webhooks/codat",
-            json={
+        resp = _post_codat_webhook(
+            {
                 "AlertType": "invoices.dataSync.completed",
                 "CompanyId": "comp-123",
                 "DataType": "invoices",
-            },
+            }
         )
         assert resp.status_code == 200
         mock_sync.assert_called_once()
@@ -107,6 +140,7 @@ class TestDebtorPayment:
             "invoice_number": "INV-100",
             "amount": "7500.00",
             "debtor_company": "Big Corp",
+            "due_date": (date.today() - timedelta(days=10)).isoformat(),
         }
 
         event = {
@@ -164,6 +198,7 @@ class TestDebtorPayment:
             "invoice_number": "INV-200",
             "amount": "3000.00",
             "debtor_company": "Small Co",
+            "due_date": (date.today() - timedelta(days=10)).isoformat(),
         }
 
         event = {
@@ -256,6 +291,7 @@ class TestDebtorPayment:
             "invoice_number": "INV-WB",
             "amount": "6000.00",
             "debtor_company": "Writeback Ltd",
+            "due_date": (date.today() - timedelta(days=10)).isoformat(),
         }
 
         event = {
@@ -287,49 +323,51 @@ class TestWebhookIdempotency:
     def test_codat_duplicate_event_ignored(self, mock_db_cls, mock_settings):
         """A duplicate Codat webhook returns duplicate=True and is not reprocessed."""
         mock_settings.supabase_url = "https://fake.supabase.co"
-        mock_settings.codat_webhook_secret = ""
+        mock_settings.codat_webhook_secret = CODAT_TEST_SECRET
 
         mock_db = MagicMock()
-        mock_db.has_processed_event.return_value = True
+        # try_mark_event_processed returns False when the insert hit a
+        # conflict, i.e. this event id was already recorded (duplicate).
+        mock_db.try_mark_event_processed.return_value = False
         mock_db_cls.return_value = mock_db
 
-        resp = client.post(
-            "/webhooks/codat",
-            json={
+        resp = _post_codat_webhook(
+            {
                 "AlertId": "alert-abc-123",
                 "AlertType": "DataSyncCompleted",
                 "CompanyId": "comp-123",
                 "DataType": "invoices",
-            },
+            }
         )
         assert resp.status_code == 200
         data = resp.json()
         assert data["duplicate"] is True
-        # mark_event_processed should NOT be called for duplicates
-        mock_db.mark_event_processed.assert_not_called()
+        mock_db.try_mark_event_processed.assert_called_once_with(
+            "alert-abc-123", "codat", "DataSyncCompleted"
+        )
 
     @patch("src.sentry.webhook_handler.settings")
     @patch("src.sentry.webhook_handler.Database")
     def test_codat_new_event_processed_and_recorded(self, mock_db_cls, mock_settings):
         """A new Codat webhook is processed and marked as such."""
         mock_settings.supabase_url = "https://fake.supabase.co"
-        mock_settings.codat_webhook_secret = ""
+        mock_settings.codat_webhook_secret = CODAT_TEST_SECRET
 
         mock_db = MagicMock()
-        mock_db.has_processed_event.return_value = False
+        # True — the insert succeeded, this is a new event.
+        mock_db.try_mark_event_processed.return_value = True
         mock_db_cls.return_value = mock_db
 
-        resp = client.post(
-            "/webhooks/codat",
-            json={
+        resp = _post_codat_webhook(
+            {
                 "AlertId": "alert-new-456",
                 "AlertType": "SomethingElse",
                 "CompanyId": "comp-789",
-            },
+            }
         )
         assert resp.status_code == 200
         assert resp.json() == {"received": True}
-        mock_db.mark_event_processed.assert_called_once_with(
+        mock_db.try_mark_event_processed.assert_called_once_with(
             "alert-new-456", "codat", "SomethingElse"
         )
 
@@ -348,7 +386,8 @@ class TestWebhookIdempotency:
         mock_billing_cls.return_value = mock_billing
 
         mock_db = MagicMock()
-        mock_db.has_processed_event.return_value = True
+        # False — the insert hit a conflict, this event id was already recorded.
+        mock_db.try_mark_event_processed.return_value = False
         mock_db_cls.return_value = mock_db
 
         resp = client.post(
@@ -362,4 +401,6 @@ class TestWebhookIdempotency:
         assert resp.status_code == 200
         data = resp.json()
         assert data["duplicate"] is True
-        mock_db.mark_event_processed.assert_not_called()
+        mock_db.try_mark_event_processed.assert_called_once_with(
+            "evt_duplicate_123", "stripe", "checkout.session.completed"
+        )

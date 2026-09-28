@@ -12,9 +12,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from pathlib import Path
-
 from decimal import Decimal
+from pathlib import Path
 
 from src.billing.boe_rate import get_boe_base_rate_percent
 from src.billing.statutory_interest import calculate_statutory_charges
@@ -186,7 +185,8 @@ def _build_user_prompt(ctx: MessageContext) -> str:
         prompt += (
             "\nStatutory interest context: The invoice has exceeded the payment deadline. "
             f"Accrued statutory interest is {ctx.currency} {charges.accrued_interest} "
-            f"({charges.annual_rate_percent}% per annum, 8 percent above the Bank of England base rate). "
+            f"({charges.annual_rate_percent}% per annum, "
+            "8 percent above the Bank of England base rate). "
             f"The statutory compensation fee is {ctx.currency} {charges.compensation_fee}. "
             f"The new total now due is {ctx.currency} {charges.total_due}. "
             "State these exact figures plainly and mention the account is queued for trade credit "

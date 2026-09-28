@@ -8,7 +8,7 @@ Covers:
 - OAuth payment detection for Xero and QuickBooks
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -49,6 +49,7 @@ def _make_invoice_dict(
     amount="7500.00",
     first_contacted_at=None,
     external_id=None,
+    due_date=None,
 ):
     return {
         "id": str(invoice_id or uuid4()),
@@ -61,6 +62,10 @@ def _make_invoice_dict(
         "current_phase": "1",
         "first_contacted_at": first_contacted_at,
         "external_id": external_id,
+        # Well under the 60-day stalled-invoice flat fee threshold by default,
+        # so callers testing the percentage-vs-flat-by-amount split don't
+        # accidentally trip the flat-by-days-overdue rule too.
+        "due_date": due_date or (date.today() - timedelta(days=10)).isoformat(),
     }
 
 
@@ -229,6 +234,7 @@ class TestPartialPaymentProtection:
             "invoice_number": "INV-EXPLOIT",
             "amount": "50000.00",  # original invoice amount
             "debtor_company": "Exploit Corp",
+            "due_date": (date.today() - timedelta(days=10)).isoformat(),
         }
 
         event = {
@@ -273,6 +279,7 @@ class TestPartialPaymentProtection:
             "invoice_number": "INV-SMALL",
             "amount": "3000.00",
             "debtor_company": "Small Co",
+            "due_date": (date.today() - timedelta(days=10)).isoformat(),
         }
 
         event = {
