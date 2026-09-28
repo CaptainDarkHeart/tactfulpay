@@ -86,8 +86,9 @@ class Settings(BaseSettings):
     # Bank of England base rate, percent. Statutory interest under the Late
     # Payment of Commercial Debts (Interest) Act 1998 is this plus 8%. This
     # tracks a real published rate and must be updated by hand when it
-    # changes (see gov.uk/bank-of-england) — there is no live feed here.
-    boe_base_rate_percent: float = 4.0
+    # changes, there is no live feed here. Last checked 2026-09-28: 3.75%,
+    # held at the 17 September 2026 MPC meeting (bankofengland.co.uk).
+    boe_base_rate_percent: float = 3.75
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
