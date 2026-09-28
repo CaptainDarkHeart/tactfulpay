@@ -16,6 +16,7 @@ from pathlib import Path
 
 from decimal import Decimal
 
+from src.billing.boe_rate import get_boe_base_rate_percent
 from src.billing.statutory_interest import calculate_statutory_charges
 from src.config import settings
 from src.db.models import InvoicePhase
@@ -180,7 +181,7 @@ def _build_user_prompt(ctx: MessageContext) -> str:
         charges = calculate_statutory_charges(
             principal=Decimal(ctx.amount),
             days_overdue=ctx.days_overdue,
-            boe_base_rate_percent=Decimal(str(settings.boe_base_rate_percent)),
+            boe_base_rate_percent=get_boe_base_rate_percent(),
         )
         prompt += (
             "\nStatutory interest context: The invoice has exceeded the payment deadline. "

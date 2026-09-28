@@ -83,11 +83,13 @@ class Settings(BaseSettings):
     fee_percentage_threshold: float = 5000.0
     vat_registered: bool = False
     vat_rate: float = 20.0
-    # Bank of England base rate, percent. Statutory interest under the Late
-    # Payment of Commercial Debts (Interest) Act 1998 is this plus 8%. This
-    # tracks a real published rate and must be updated by hand when it
-    # changes, there is no live feed here. Last checked 2026-09-28: 3.75%,
-    # held at the 17 September 2026 MPC meeting (bankofengland.co.uk).
+    # Bank of England base rate, percent, fallback only. Statutory interest
+    # under the Late Payment of Commercial Debts (Interest) Act 1998 is this
+    # plus 8%. src/billing/boe_rate.py fetches the live rate from the BoE's
+    # public database at runtime, this value is only used if that fetch
+    # fails. Last checked 2026-09-28: 3.75%, held at the 17 September 2026
+    # MPC meeting (bankofengland.co.uk). Update occasionally so the fallback
+    # doesn't drift too far from reality.
     boe_base_rate_percent: float = 3.75
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
