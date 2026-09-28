@@ -57,6 +57,7 @@
   }
 
   *{box-sizing:border-box;}
+  html,body{width:100%;}
   body{
     margin:0;
     background:var(--paper);
@@ -149,7 +150,7 @@
 
   .track-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
     gap:18px;
   }
   @media (max-width:620px){
@@ -183,7 +184,7 @@
   ul.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;}
   ul.tasks li{
     display:grid;
-    grid-template-columns:18px 1fr;
+    grid-template-columns:18px minmax(0,1fr);
     gap:10px;
     align-items:start;
     font-size:.92rem;
@@ -195,9 +196,26 @@
     border:1.5px solid var(--ink-soft);
     border-radius:4px;
     margin-top:2px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    line-height:1;
+    color:var(--paper);
   }
+  ul.tasks li.done::before{
+    content:"\2713";
+    background:var(--accent);
+    border-color:var(--accent);
+  }
+  ul.tasks li.done b{
+    text-decoration:line-through;
+    text-decoration-color:var(--ink-soft);
+    color:var(--ink-soft);
+  }
+  ul.tasks li .content{min-width:0;}
   ul.tasks li b{display:block;font-weight:600;}
-  ul.tasks li span.note{color:var(--ink-soft);font-size:.85rem;}
+  ul.tasks li span.note{display:block;color:var(--ink-soft);font-size:.85rem;}
 
   .decisions{display:flex;flex-direction:column;gap:12px;}
   .decision{
@@ -248,7 +266,7 @@
   .risk-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none;}
   .risk-list li{
     display:grid;
-    grid-template-columns:auto 1fr;
+    grid-template-columns:auto minmax(0,1fr);
     gap:12px;
     align-items:start;
     padding:12px 16px;
@@ -309,20 +327,20 @@
         <h3><span class="dot"></span>Dan</h3>
         <p class="role">Product &amp; technical build</p>
         <ul class="tasks">
-          <li><b>Select the backend LLM</b><span class="note">Agreed to skip Claude on cost. Evaluate Qwen, Kimi, and GLM for the Strategist brain.</span></li>
-          <li><b>Build onboarding into the demo</b><span class="note">Replace the "secure my cash flow" shortcut with a proper account setup route so test clients go through the real flow, not a shortcut that adds a client directly.</span></li>
-          <li><b>Ship a functional proof of concept</b><span class="note">Target: ready before the next sync, so Stewart can start testing with friendly contacts.</span></li>
-          <li><b>Track operating costs</b><span class="note">Report hosting, LLM, and platform spend as the build progresses. Current baseline: $5/month Railway hosting against an estimated $140/month client charge.</span></li>
+          <li class="done"><div class="content"><b>Select the backend LLM</b><span class="note">Done. OpenRouter, pinned fallback lists per task (Qwen3 235B, DeepSeek V3.2, GLM), live-verified against real sends. Key set on Railway production.</span></div></li>
+          <li><div class="content"><b>Build onboarding into the demo</b><span class="note">Replace the "secure my cash flow" shortcut with a proper account setup route so test clients go through the real flow, not a shortcut that adds a client directly.</span></div></li>
+          <li><div class="content"><b>Ship a functional proof of concept</b><span class="note">Target: ready before the next sync, so Stewart can start testing with friendly contacts.</span></div></li>
+          <li><div class="content"><b>Track operating costs</b><span class="note">Report hosting, LLM, and platform spend as the build progresses. Current baseline: $5/month Railway hosting against an estimated $140/month client charge.</span></div></li>
         </ul>
       </div>
       <div class="track stewart">
         <h3><span class="dot"></span>Stewart</h3>
         <p class="role">Strategy, compliance &amp; go-to-market</p>
         <ul class="tasks">
-          <li><b>Deliver the updated prompt set</b><span class="note">New instruction set directing how the escalation conversation should proceed, built on his tactical-empathy "T method" work.</span></li>
-          <li><b>Research tax exposure</b><span class="note">What TactfulPay owes on payments that flow through its own account before being paid out to clients.</span></li>
-          <li><b>Research banking &amp; escrow options</b><span class="note">Including whether a Jersey or Gibraltar company/banking structure changes the tax position.</span></li>
-          <li><b>Stand up lead-scraping agents</b><span class="note">Automated discovery of contacts at target companies, once the product is ready to sell.</span></li>
+          <li><div class="content"><b>Deliver the updated prompt set</b><span class="note">New instruction set directing how the escalation conversation should proceed, built on his tactical-empathy "T method" work.</span></div></li>
+          <li><div class="content"><b>Research tax exposure</b><span class="note">What TactfulPay owes on payments that flow through its own account before being paid out to clients.</span></div></li>
+          <li><div class="content"><b>Research banking &amp; escrow options</b><span class="note">Including whether a Jersey or Gibraltar company/banking structure changes the tax position.</span></div></li>
+          <li><div class="content"><b>Stand up lead-scraping agents</b><span class="note">Automated discovery of contacts at target companies, once the product is ready to sell.</span></div></li>
         </ul>
       </div>
     </div>

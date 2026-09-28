@@ -26,6 +26,14 @@ The agent must NEVER hallucinate discounts, payment terms, or legal threats. Dis
 
 All generated messaging must use Chris Voss tactical empathy principles (late night FM DJ voice, calibrated questions, empathy mirrors, labelling, accusation audits). Semicolons and hyphens are strictly prohibited in all generated output.
 
+## Gotchas
+
+**Reasoning models silently return empty completions.** GLM 4.6/4.7-flash will spend their entire `max_tokens` budget on hidden chain-of-thought before writing an answer, more tokens on a complex prompt than a trivial one, so it isn't caught by a quick smoke test. `src/strategist/llm_client.py` passes `extra_body={"reasoning": {"enabled": False}}` on every OpenRouter call to prevent this. Don't remove it without retesting against the real prompts, not just a trivial one.
+
+**The hyphen ban must include unicode dashes.** `_enforce_banned_words` in `message_generator.py` rejects `[;\-–—]`, not just ASCII hyphen. Models substitute em-dash (—) for a plain hyphen about as often as not when asked to avoid one, an ASCII-only regex misses roughly half of violations.
+
+**Local webhook tests need real-looking secrets.** `tests/test_webhook_handler.py` hits `/webhooks/codat`, which 500s immediately if `CODAT_WEBHOOK_SECRET` is blank in `.env`. This is intentional fail-closed behavior, not a bug, set a dummy value locally if you need those tests green.
+
 ## Database Security
 
 The database layer enforces tenant isolation through PostgreSQL Row Level Security (RLS). Dashboard sessions use JWT tokens via the Supabase anon key. Backend processes use the service role key for administrative operations. The RLS migration is at `migrations/20260328_rls_policies.sql`.
@@ -35,7 +43,7 @@ The database layer enforces tenant isolation through PostgreSQL Row Level Securi
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+uv pip install -e ".[dev]" --python .venv/bin/python  # pip itself isn't installed in this venv
 cp .env.example .env
 pytest
 ```
@@ -58,11 +66,11 @@ uvicorn src.dashboard.app:app --reload --port 8000
 
 ## Current Status
 
-Phase 2 complete. 276 tests passing. Key recent updates include phase_start_date based escalation for accurate 21 day cycle, Row Level Security migration, JWT authentication for the dashboard, tactical empathy prompt standardization, and post generation punctuation guardrails.
+Phase 2 complete. 266 tests passing, 15 failing locally due to blank `CODAT_WEBHOOK_SECRET`/`CODAT_API_KEY` in `.env` (not a code bug, see Gotchas). Key recent updates include phase_start_date based escalation for accurate 21 day cycle, Row Level Security migration, JWT authentication for the dashboard, the Strategist LLM swap from Claude to pinned OpenRouter models, and post generation punctuation guardrails covering both subject and body.
 
 ## Deployment
 
-Live at https://tactfulpay-production.up.railway.app (Railway project `tactfulpay`, service deployed from repo `Dockerfile`, redeployed via `railway up`). Currently demo mode: no `SUPABASE_URL` or other API keys set, so the dashboard runs on in-memory demo data. `PORT=8000` and the domain's target port are set explicitly since Railway did not autodetect them.
+Live at https://tactfulpay-production.up.railway.app (Railway project `tactfulpay`, service deployed from repo `Dockerfile`, redeployed via `railway up`). Currently demo mode: `OPENROUTER_API_KEY` is set, but `SUPABASE_URL` and other keys aren't, so the dashboard still runs on in-memory demo data. `PORT=8000` and the domain's target port are set explicitly since Railway did not autodetect them.
 
 `railway.json` config is deprecated in favor of `.railway/railway.ts` (existing file keeps working until 2026-12-01, run `railway config migrate` to switch).
 
