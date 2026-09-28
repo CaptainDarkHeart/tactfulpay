@@ -21,11 +21,19 @@ PHASE_1_BANNED_WORDS = frozenset(
     }
 )
 
-# The strongest language permitted at any phase
+# The strongest language permitted in Phases 0 to 3
 MAX_ESCALATION_LANGUAGE = "external compliance partner"
+
+# Phase 4 only, loosened 2026-09-28 (Dan's sign-off on Stewart's TactfulPay v2
+# spec): the agent may additionally state exact statutory interest and
+# compensation figures (calculated via src/billing/statutory_interest.py, never
+# invented) and reference trade credit reporting. It must still never name a
+# specific law firm or threaten court action directly.
+PHASE_4_MAX_ESCALATION_LANGUAGE = "trade credit reporting"
 
 # Discount limits by phase
 PHASE_DISCOUNT_LIMITS: dict[int, float] = {
+    0: 0.0,  # No discounts pre-due
     1: 0.0,  # No discounts in Phase 1
     2: 2.0,  # Max 2% for payment within 48h
     3: 3.0,  # Max 3% for payment within 24h (requires pre-auth)
@@ -34,6 +42,7 @@ PHASE_DISCOUNT_LIMITS: dict[int, float] = {
 
 # Maximum email word counts by phase
 PHASE_MAX_WORDS: dict[int, int] = {
+    0: 80,
     1: 120,
     2: 100,
     3: 110,

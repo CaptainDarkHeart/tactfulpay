@@ -14,6 +14,9 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from decimal import Decimal
+
+from src.billing.statutory_interest import calculate_statutory_charges
 from src.config import settings
 from src.db.models import InvoicePhase
 from src.strategist.constraints import PHASE_1_BANNED_WORDS, PHASE_MAX_WORDS, DiscountOffer
@@ -143,10 +146,15 @@ def _build_user_prompt(ctx: MessageContext) -> str:
     # was allowed to reformat.
     display_invoice_number = ctx.invoice_number.replace("-", " ")
 
+    if ctx.days_overdue > 0:
+        timing_context = f"which is {ctx.days_overdue} days overdue (due date: {ctx.due_date})"
+    else:
+        timing_context = f"which is not yet due (due date: {ctx.due_date})"
+
     prompt = (
         f"Write an email to {ctx.contact_name} at {ctx.debtor_company} "
         f"regarding Invoice #{display_invoice_number} for {ctx.currency} {ctx.amount}, "
-        f"which is {ctx.days_overdue} days overdue (due date: {ctx.due_date}).\n\n"
+        f"{timing_context}.\n\n"
         f"Keep the email under {max_words} words.\n"
         f"Include a subject line on the first line prefixed with 'Subject: '.\n"
         f"Then write the email body.\n"
@@ -169,10 +177,19 @@ def _build_user_prompt(ctx: MessageContext) -> str:
 
     phase_num = int(ctx.phase.value)
     if phase_num >= 4:
+        charges = calculate_statutory_charges(
+            principal=Decimal(ctx.amount),
+            days_overdue=ctx.days_overdue,
+            boe_base_rate_percent=Decimal(str(settings.boe_base_rate_percent)),
+        )
         prompt += (
             "\nStatutory interest context: The invoice has exceeded the payment deadline. "
-            "Mention that statutory interest at 8 percent above the Bank of England base rate "
-            "continues to accrue on the outstanding balance and is now part of the compliance record.\n"
+            f"Accrued statutory interest is {ctx.currency} {charges.accrued_interest} "
+            f"({charges.annual_rate_percent}% per annum, 8 percent above the Bank of England base rate). "
+            f"The statutory compensation fee is {ctx.currency} {charges.compensation_fee}. "
+            f"The new total now due is {ctx.currency} {charges.total_due}. "
+            "State these exact figures plainly and mention the account is queued for trade credit "
+            "reporting if unresolved, as instructed in your system prompt.\n"
         )
     elif phase_num >= 3:
         prompt += (
@@ -251,7 +268,7 @@ def _generate_reply_to_sent(ctx: MessageContext) -> GeneratedMessage:
 
 def _enforce_banned_words(body: str, phase: InvoicePhase) -> str:
     """Post generation check replace banned words and prohibit characters"""
-    if phase == InvoicePhase.PHASE_1:
+    if phase in (InvoicePhase.PHASE_0, InvoicePhase.PHASE_1):
         replacements = {
             "overdue": "outstanding",
             "late": "pending",

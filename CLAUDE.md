@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-AI powered collections agent that chases overdue invoices on behalf of SMEs using psychological escalation techniques (Chris Voss tactical empathy). Operates across email, AI voice, and LinkedIn DM with four behavioural phases over a strict 21 day cycle.
+AI powered collections agent that chases overdue invoices on behalf of SMEs using psychological escalation techniques (Chris Voss tactical empathy). Operates across email, AI voice, and LinkedIn DM with five behavioural phases (Phase 0 pre-due admin check, Phases 1 to 4 the escalation cycle) over a strict 21 day cycle from the due date.
 
 Business model: outcome only pricing. 10% fee on invoices over GBP 5,000, or GBP 500 flat fee for stalled invoices 60+ days overdue. Zero upfront cost to the SME.
 
@@ -12,7 +12,7 @@ Three brain agentic workflow:
 
 **Sentry** (`src/sentry/`) Integration brain. Monitors accounting software (Codat, Xero, QuickBooks, CSV), identifies overdue invoices, pulls contact metadata, handles OAuth token management, and processes Codat and Stripe webhooks with idempotency.
 
-**Strategist** (`src/strategist/`) Psychological brain. LLM powered via OpenRouter with two separate pinned model fallback lists (see `src/config.py`), not the OpenRouter auto-router, to keep message tone and classification output format consistent: message generation leads with Qwen3 235B (tone/nuance), classification leads with GLM 4.7 Flash (cheap, fixed-category output, lower stakes since a parse failure just falls back to STALL). Manages phase state machine with `phase_start_date` based escalation timing. Classifies responses into 8 categories. Generates all messages using tactical empathy prompt templates with post generation guardrails.
+**Strategist** (`src/strategist/`) Psychological brain. LLM powered via OpenRouter with two separate pinned model fallback lists (see `src/config.py`), not the OpenRouter auto-router, to keep message tone and classification output format consistent: message generation leads with Qwen3 235B (tone/nuance), classification leads with GLM 4.7 Flash (cheap, fixed-category output, lower stakes since a parse failure just falls back to STALL). Manages phase state machine with `phase_start_date` based escalation timing, including Phase 0 (`src/strategist/state_machine.py:initial_phase_for_due_date`) which starts invoices synced or imported within 3 days of their due date in a pre-due admin verification phase instead of Phase 1. Classifies responses into 10 categories (see `Classification` enum in `src/db/models.py`). Generates all messages using tactical empathy prompt templates with post generation guardrails.
 
 **Executor** (`src/executor/`) Multi channel brain. Sends emails (Resend), voice calls (Vapi/ElevenLabs), LinkedIn DMs. Handles variable cadence and custom sending domain setup.
 
@@ -22,7 +22,7 @@ Python 3.11+ with OpenRouter (pinned model fallback, not the auto-router), Postg
 
 ## Key Constraints
 
-The agent must NEVER hallucinate discounts, payment terms, or legal threats. Discount offers gated by `discount_authorised` boolean and phase specific limits (see `src/strategist/constraints.py`). On DISPUTE or HOSTILE classification, agent pauses immediately and human must clear flag. "External compliance partner" is the strongest language permitted. Variable send cadence ensures the agent never looks automated and never contacts same person twice in one day. Max 30 cold emails per day per inbox.
+The agent must NEVER hallucinate discounts, payment terms, or legal threats. Discount offers gated by `discount_authorised` boolean and phase specific limits (see `src/strategist/constraints.py`). On DISPUTE or HOSTILE classification, agent pauses immediately and human must clear flag. "External compliance partner" is the strongest language permitted in Phases 0 to 3. Phase 4 additionally permits exact statutory interest/compensation figures and "trade credit reporting" (loosened 2026-09-28, see Gotchas). Variable send cadence ensures the agent never looks automated and never contacts same person twice in one day. Max 30 cold emails per day per inbox.
 
 All generated messaging must use Chris Voss tactical empathy principles (late night FM DJ voice, calibrated questions, empathy mirrors, labelling, accusation audits). Semicolons and hyphens are strictly prohibited in all generated output.
 
@@ -33,6 +33,10 @@ All generated messaging must use Chris Voss tactical empathy principles (late ni
 **The hyphen ban must include unicode dashes.** `_enforce_banned_words` in `message_generator.py` rejects `[;\-–—]`, not just ASCII hyphen. Models substitute em-dash (—) for a plain hyphen about as often as not when asked to avoid one, an ASCII-only regex misses roughly half of violations.
 
 **Local webhook tests need real-looking secrets.** `tests/test_webhook_handler.py` hits `/webhooks/codat`, which 500s immediately if `CODAT_WEBHOOK_SECRET` is blank in `.env`. This is intentional fail-closed behavior, not a bug, set a dummy value locally if you need those tests green.
+
+**Statutory interest cites a manually maintained BoE rate.** `settings.boe_base_rate_percent` (`src/config.py`) has no live feed, it must be updated by hand when the Bank of England base rate changes. `src/billing/statutory_interest.py` adds 8% to it per the Late Payment of Commercial Debts (Interest) Act 1998 and is only ever cited with exact figures in Phase 4 messaging (`src/strategist/message_generator.py`), never invented by the LLM. Stale rate means the figures quoted to debtors are wrong, check it periodically.
+
+**Phase 4's stronger language was a deliberate, dated exception.** `PHASE_4_MAX_ESCALATION_LANGUAGE` in `constraints.py` permits "trade credit reporting" and exact statutory figures only in Phase 4, loosened 2026-09-28 on Dan's sign-off after reviewing Stewart's TactfulPay v2 spec. All other phases stay capped at "external compliance partner". Don't extend this to earlier phases without the same kind of explicit sign-off, it exists because premature legal framing triggers psychological reactance (see phase cadence rationale).
 
 ## Database Security
 
@@ -66,7 +70,7 @@ uvicorn src.dashboard.app:app --reload --port 8000
 
 ## Current Status
 
-Phase 2 complete. 266 tests passing, 15 failing locally due to blank `CODAT_WEBHOOK_SECRET`/`CODAT_API_KEY` in `.env` (not a code bug, see Gotchas). Key recent updates include phase_start_date based escalation for accurate 21 day cycle, Row Level Security migration, JWT authentication for the dashboard, the Strategist LLM swap from Claude to pinned OpenRouter models, and post generation punctuation guardrails covering both subject and body.
+Phase 2 complete. 288 tests passing, 15 failing locally due to blank `CODAT_WEBHOOK_SECRET`/`CODAT_API_KEY` in `.env` (not a code bug, see Gotchas). Key recent updates include phase_start_date based escalation for accurate 21 day cycle, Row Level Security migration, JWT authentication for the dashboard, the Strategist LLM swap from Claude to pinned OpenRouter models, post generation punctuation guardrails covering both subject and body, VAT on the recovery fee (gated behind `vat_registered`), and Phase 0 plus statutory interest/compensation calculation adopted from Stewart's TactfulPay v2 spec.
 
 ## Deployment
 

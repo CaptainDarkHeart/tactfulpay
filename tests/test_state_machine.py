@@ -1,6 +1,6 @@
 """Tests for the phase progression state machine."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -8,6 +8,7 @@ from src.db.models import Classification, InvoicePhase, InvoiceStatus
 from src.strategist.state_machine import (
     get_next_followup_day,
     handle_classification,
+    initial_phase_for_due_date,
     should_escalate,
 )
 
@@ -86,6 +87,44 @@ class TestHandleClassification:
             Classification.PAYMENT_PENDING, InvoicePhase.PHASE_1, uuid4(), db
         )
         assert result.action == "send_message"
+
+    def test_check_or_transfer_initiated_sends_followup(self):
+        db = _mock_db()
+        result = handle_classification(
+            Classification.CHECK_OR_TRANSFER_INITIATED, InvoicePhase.PHASE_1, uuid4(), db
+        )
+        assert result.action == "send_message"
+
+    def test_inability_to_pay_offers_payment_plan(self):
+        db = _mock_db()
+        result = handle_classification(
+            Classification.INABILITY_TO_PAY, InvoicePhase.PHASE_2, uuid4(), db
+        )
+        assert result.action == "send_message"
+        assert result.accelerated is False
+
+    def test_no_response_escalates_phase_0_to_1(self):
+        db = _mock_db()
+        result = handle_classification(
+            Classification.NO_RESPONSE, InvoicePhase.PHASE_0, uuid4(), db
+        )
+        assert result.action == "escalate_phase"
+        assert result.new_phase == InvoicePhase.PHASE_1
+
+
+class TestInitialPhaseForDueDate:
+    def test_due_within_window_starts_phase_0(self):
+        today = date(2026, 9, 28)
+        assert initial_phase_for_due_date(date(2026, 9, 28), today) == InvoicePhase.PHASE_0
+        assert initial_phase_for_due_date(date(2026, 10, 1), today) == InvoicePhase.PHASE_0
+
+    def test_already_overdue_starts_phase_1(self):
+        today = date(2026, 9, 28)
+        assert initial_phase_for_due_date(date(2026, 9, 20), today) == InvoicePhase.PHASE_1
+
+    def test_far_in_future_starts_phase_1(self):
+        today = date(2026, 9, 28)
+        assert initial_phase_for_due_date(date(2026, 10, 10), today) == InvoicePhase.PHASE_1
 
 
 class TestShouldEscalate:

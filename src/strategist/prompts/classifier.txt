@@ -1,19 +1,30 @@
 Classify the following email reply into exactly one of these categories:
 
 1. PROMISE_TO_PAY - The sender commits to a specific payment date or
-   says payment has been initiated
-2. PAYMENT_PENDING - The sender says a check/transfer is in progress
-   but provides no specific date
-3. DISPUTE - The sender disputes the invoice amount, the work delivered,
+   payment run
+2. PAYMENT_PENDING - The sender says payment will be made or is being
+   arranged soon, but gives no specific date and no proof it has actually
+   been sent yet (e.g. "we'll get this sorted", "it's with our finance team")
+3. CHECK_OR_TRANSFER_INITIATED - The sender states the remittance has
+   already been sent or submitted to the banking rail (e.g. "the transfer
+   went out yesterday", "check was mailed last week"). Use this instead of
+   PAYMENT_PENDING when the sender claims the payment itself has already
+   left their side, not just that it is planned.
+4. INABILITY_TO_PAY - The sender cites working capital problems, their own
+   customer's non-payment, or another concrete cash flow constraint as the
+   reason they cannot pay right now. Use this instead of STALL when a
+   specific cash flow reason is given, not just a vague non-commitment.
+5. DISPUTE - The sender disputes the invoice amount, the work delivered,
    or the existence of the debt
-4. REDIRECT - The sender says they are not the right person and provides
+6. REDIRECT - The sender says they are not the right person and provides
    or suggests an alternative contact
-5. STALL - The sender acknowledges the invoice but provides vague
-   non-commitments ("we're working on it", "it's in the queue")
-6. HOSTILE - The sender is angry, threatens legal action, or demands
+7. STALL - The sender acknowledges the invoice but provides vague
+   non-commitments with no specific reason ("we're working on it",
+   "it's in the queue")
+8. HOSTILE - The sender is angry, threatens legal action, or demands
    no further contact
-7. NO_RESPONSE - No reply received within the phase window
-8. WRITE_OFF_CLAIMED - The sender claims that the invoice has been
+9. NO_RESPONSE - No reply received within the phase window
+10. WRITE_OFF_CLAIMED - The sender claims that the invoice has been
    written off, cancelled, or forgiven by the creditor (e.g. "we were
    told this was written off", "our records show this debt was cancelled",
    "we understood this invoice was no longer owed"). Use this ONLY when

@@ -33,6 +33,7 @@ from src.sentry.normalised_invoice import NormalisedInvoice
 from src.sentry.oauth import decrypt_token, encrypt_token, refresh_access_token
 from src.sentry.quickbooks_client import QuickBooksClient
 from src.sentry.xero_client import XeroClient
+from src.strategist.state_machine import initial_phase_for_due_date
 
 logger = logging.getLogger(__name__)
 
@@ -143,13 +144,15 @@ def _create_invoice_from_codat(
     codat_inv: CodatInvoice,
 ) -> None:
     """Create an Invoice and Contact from a Codat invoice."""
+    due_date = date.fromisoformat(codat_inv.due_date[:10])
     invoice = Invoice(
         sme_id=sme_id,
         invoice_number=codat_inv.invoice_number,
         debtor_company=codat_inv.customer_name,
         amount=Decimal(str(codat_inv.amount_due)),
         currency=codat_inv.currency,
-        due_date=date.fromisoformat(codat_inv.due_date[:10]),
+        due_date=due_date,
+        current_phase=initial_phase_for_due_date(due_date),
         external_id=codat_inv.codat_invoice_id,
     )
     db.create_invoice(invoice)
@@ -412,6 +415,7 @@ def upsert_normalised_invoices(
             amount=norm_inv.amount_due,
             currency=norm_inv.currency,
             due_date=norm_inv.due_date,
+            current_phase=initial_phase_for_due_date(norm_inv.due_date),
             external_id=norm_inv.external_id,
         )
         db.create_invoice(invoice)

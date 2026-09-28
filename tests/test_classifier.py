@@ -52,6 +52,18 @@ class TestParseClassification:
         )
         assert result == Classification.PAYMENT_PENDING
 
+    def test_check_or_transfer_initiated(self):
+        result, _ = _parse_classification(
+            "CHECK_OR_TRANSFER_INITIATED - The sender says the transfer already went out"
+        )
+        assert result == Classification.CHECK_OR_TRANSFER_INITIATED
+
+    def test_inability_to_pay(self):
+        result, _ = _parse_classification(
+            "INABILITY_TO_PAY - The sender cites a cash flow shortfall"
+        )
+        assert result == Classification.INABILITY_TO_PAY
+
     def test_no_response(self):
         result, _ = _parse_classification("NO_RESPONSE - No reply received within the window")
         assert result == Classification.NO_RESPONSE

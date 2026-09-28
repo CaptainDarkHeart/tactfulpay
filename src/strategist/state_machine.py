@@ -1,9 +1,10 @@
 """Phase progression state machine for invoice collection lifecycle.
 
-Manages the 4-phase escalation sequence and handles response-driven transitions
+Manages the escalation sequence and handles response-driven transitions
 per the action matrix defined in the spec.
 
 Phase timeline:
+    Phase 0 (Days -3 to 0): Email only, pre-due admin verification
     Phase 1 (Days 1-5):  Email only, friendly check-in
     Phase 2 (Days 7-10): Email + voice, internal advocate
     Phase 3 (Days 14-17): Email + voice, loss aversion
@@ -29,6 +30,7 @@ from src.db.models import (
 
 # Phase cadence: maps phase to (days into sequence, phase duration in days)
 PHASE_SCHEDULE = {
+    InvoicePhase.PHASE_0: {"start_day": -3, "duration": 3},
     InvoicePhase.PHASE_1: {"start_day": 1, "duration": 5},
     InvoicePhase.PHASE_2: {"start_day": 7, "duration": 4},
     InvoicePhase.PHASE_3: {"start_day": 14, "duration": 4},
@@ -37,11 +39,31 @@ PHASE_SCHEDULE = {
 
 # Follow-up schedule within each phase (days after phase start)
 PHASE_FOLLOWUPS = {
+    InvoicePhase.PHASE_0: [0],  # Single pre-due admin check
     InvoicePhase.PHASE_1: [0, 2, 4],  # Day 1, 3, 5
     InvoicePhase.PHASE_2: [0, 3],  # Day 7, 10
     InvoicePhase.PHASE_3: [0, 3],  # Day 14, 17
     InvoicePhase.PHASE_4: [0, 2],  # Day 21, 23
 }
+
+# How many days before its due date an invoice should start in Phase 0
+# (pre-due admin verification) instead of Phase 1.
+PRE_DUE_WINDOW_DAYS = 3
+
+
+def initial_phase_for_due_date(due_date: date, today: date | None = None) -> InvoicePhase:
+    """Decide which phase a newly tracked invoice should start in.
+
+    Invoices synced or imported within PRE_DUE_WINDOW_DAYS of their due date
+    start in Phase 0, catching PO mismatches or vendor onboarding issues
+    before the invoice is even overdue. Anything already overdue, or due
+    further out than the window, starts at Phase 1 as before.
+    """
+    today = today or date.today()
+    days_until_due = (due_date - today).days
+    if 0 <= days_until_due <= PRE_DUE_WINDOW_DAYS:
+        return InvoicePhase.PHASE_0
+    return InvoicePhase.PHASE_1
 
 
 @dataclass
@@ -81,8 +103,23 @@ def handle_classification(
     if classification == Classification.PAYMENT_PENDING:
         return TransitionResult(
             action="send_message",
-            message="Request check/transfer reference number for social accountability. "
-            "Follow up in 3 business days.",
+            message="Acknowledge the payment is in progress with a light touch. "
+            "Follow up in 2 days if no reference has come through by then.",
+        )
+
+    if classification == Classification.CHECK_OR_TRANSFER_INITIATED:
+        return TransitionResult(
+            action="send_message",
+            message="Request payment reference, transaction trace, or check number "
+            "for verification. Follow up in 3 business days.",
+        )
+
+    if classification == Classification.INABILITY_TO_PAY:
+        return TransitionResult(
+            action="send_message",
+            message="Do not escalate tone. Offer a structured two-stage payment "
+            "arrangement (e.g. 50% now, 50% in 14 days) or a split invoice option "
+            "to secure partial liquidity immediately.",
         )
 
     if classification == Classification.DISPUTE:
@@ -163,6 +200,7 @@ def _escalate_phase(
 ) -> TransitionResult:
     """Move to the next phase on NO_RESPONSE."""
     phase_order = [
+        InvoicePhase.PHASE_0,
         InvoicePhase.PHASE_1,
         InvoicePhase.PHASE_2,
         InvoicePhase.PHASE_3,

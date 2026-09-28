@@ -36,6 +36,7 @@ class SMEStatus(str, enum.Enum):
 
 
 class InvoicePhase(str, enum.Enum):
+    PHASE_0 = "0"
     PHASE_1 = "1"
     PHASE_2 = "2"
     PHASE_3 = "3"
@@ -76,6 +77,8 @@ class MessageType(str, enum.Enum):
 class Classification(str, enum.Enum):
     PROMISE_TO_PAY = "promise_to_pay"
     PAYMENT_PENDING = "payment_pending"
+    CHECK_OR_TRANSFER_INITIATED = "check_or_transfer_initiated"
+    INABILITY_TO_PAY = "inability_to_pay"
     DISPUTE = "dispute"
     REDIRECT = "redirect"
     STALL = "stall"

@@ -19,6 +19,7 @@ from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
 from src.db.models import Contact, ContactSource, Database, Invoice
+from src.strategist.state_machine import initial_phase_for_due_date
 
 
 @dataclass
@@ -195,6 +196,7 @@ def import_csv(file_content: str | bytes, sme_id: UUID, db: Database) -> ImportR
 
         amount = Decimal(row["amount"].replace(",", ""))
         currency = row.get("currency", "").upper() or "GBP"
+        due_date = date.fromisoformat(row["due_date"])
 
         invoice = Invoice(
             sme_id=sme_id,
@@ -202,7 +204,8 @@ def import_csv(file_content: str | bytes, sme_id: UUID, db: Database) -> ImportR
             debtor_company=row["debtor_company"],
             amount=amount,
             currency=currency,
-            due_date=date.fromisoformat(row["due_date"]),
+            due_date=due_date,
+            current_phase=initial_phase_for_due_date(due_date),
         )
         db.create_invoice(invoice)
         result.invoices_created += 1

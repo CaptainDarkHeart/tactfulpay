@@ -83,6 +83,11 @@ class Settings(BaseSettings):
     fee_percentage_threshold: float = 5000.0
     vat_registered: bool = False
     vat_rate: float = 20.0
+    # Bank of England base rate, percent. Statutory interest under the Late
+    # Payment of Commercial Debts (Interest) Act 1998 is this plus 8%. This
+    # tracks a real published rate and must be updated by hand when it
+    # changes (see gov.uk/bank-of-england) — there is no live feed here.
+    boe_base_rate_percent: float = 4.0
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

@@ -1,8 +1,9 @@
 """LLM-based reply classification using the pinned OpenRouter model.
 
-Classifies inbound email replies into one of seven categories:
-    PROMISE_TO_PAY, PAYMENT_PENDING, DISPUTE, REDIRECT,
-    STALL, HOSTILE, NO_RESPONSE
+Classifies inbound email replies into one of the Classification enum values
+(see src/db/models.py): PROMISE_TO_PAY, PAYMENT_PENDING,
+CHECK_OR_TRANSFER_INITIATED, INABILITY_TO_PAY, DISPUTE, REDIRECT, STALL,
+HOSTILE, NO_RESPONSE, WRITE_OFF_CLAIMED.
 
 The classifier prompt is loaded from src/strategist/prompts/classifier.txt.
 """
